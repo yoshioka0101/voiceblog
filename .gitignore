@@ -1,5 +1,6 @@
 # Claude Code関連
-.claude/
+.claude/*
+!.claude/config.json
 .serena/
 
 # OS関連

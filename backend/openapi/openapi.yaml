@@ -1,0 +1,11 @@
+openapi: 3.0.3
+info:
+  title: Voiceblog API
+  version: 0.1.0
+paths:
+  /health:
+    $ref: ./paths/health.yaml
+components:
+  schemas:
+    HealthResponse:
+      $ref: ./components/schemas/health.yaml

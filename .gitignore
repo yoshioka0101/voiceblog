@@ -41,8 +41,6 @@ vendor/
 # ビルド成果物
 dist/
 build/
-bin/
-.gocache/
 *.exe
 *.out
 *.test

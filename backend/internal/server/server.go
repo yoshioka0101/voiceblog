@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"time"
@@ -10,6 +11,7 @@ import (
 
 type Server struct {
 	engine *gin.Engine
+	http   *http.Server
 }
 
 func New(log *slog.Logger) *Server {
@@ -26,7 +28,18 @@ func New(log *slog.Logger) *Server {
 }
 
 func (s *Server) Run(addr string) error {
-	return s.engine.Run(addr)
+	s.http = &http.Server{
+		Addr:    addr,
+		Handler: s.engine,
+	}
+	return s.http.ListenAndServe()
+}
+
+func (s *Server) Shutdown(ctx context.Context) error {
+	if s.http == nil {
+		return nil
+	}
+	return s.http.Shutdown(ctx)
 }
 
 func requestLogger(log *slog.Logger) gin.HandlerFunc {

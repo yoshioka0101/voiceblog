@@ -10,6 +10,7 @@ import (
 type Config struct {
 	Port     string
 	LogLevel slog.Level
+	DBDSN    string
 }
 
 func Load() (Config, error) {
@@ -23,9 +24,15 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	dbDSN := getEnv("DB_DSN", "")
+	if dbDSN == "" {
+		return Config{}, fmt.Errorf("DB_DSN is required")
+	}
+
 	return Config{
 		Port:     port,
 		LogLevel: logLevel,
+		DBDSN:    dbDSN,
 	}, nil
 }
 

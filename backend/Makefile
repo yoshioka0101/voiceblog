@@ -1,7 +1,9 @@
 APP_NAME=voiceblog-api
+-include .env
+export
 .DEFAULT_GOAL := help
 
-.PHONY: help dev server lint test fmt gen-api redoc
+.PHONY: help dev server lint test fmt gen-api redoc db-up db-down
 
 help:
 	@printf "使い方: make <ターゲット>\n\n"
@@ -13,6 +15,8 @@ help:
 	@printf "  fmt       Goファイルを gofmt\n"
 	@printf "  gen-api   OpenAPI の bundle を生成\n"
 	@printf "  redoc     OpenAPI ドキュメントを localhost:9999 で配信\n"
+	@printf "  db-up     MySQL を起動\n"
+	@printf "  db-down   MySQL を停止\n"
 
 dev:
 	go run ./cmd/api
@@ -35,3 +39,8 @@ gen-api:
 redoc:
 	npx @redocly/cli@1.34.2 preview-docs -p 3001 openapi/openapi.yaml
 
+db-up:
+	docker compose -f docker-compose.yml up -d
+
+db-down:
+	docker compose -f docker-compose.yml down

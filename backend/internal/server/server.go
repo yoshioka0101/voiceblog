@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/yoshioka0101/voiceblog/backend/internal/handler"
+	"github.com/yoshioka0101/voiceblog/backend/internal/health"
 )
 
 type Server struct {
@@ -20,7 +20,7 @@ func New(log *slog.Logger) *Server {
 	router := gin.New()
 	router.Use(requestLogger(log), gin.Recovery())
 
-	handler.RegisterAllRoutes(router)
+	health.RegisterRoutes(router)
 
 	return &Server{engine: router}
 }

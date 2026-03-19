@@ -1,4 +1,4 @@
-package handler
+package health
 
 import (
 	"net/http"
@@ -15,8 +15,4 @@ func GetHealth(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
 	})
-}
-
-func RegisterHealthRoutes(r *gin.Engine) {
-	r.GET("/health", GetHealth)
 }

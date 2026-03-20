@@ -1,0 +1,13 @@
+psql:
+  dsn: "postgres://voiceblog:nibj6686@127.0.0.1:5432/voiceblog?sslmode=disable"
+  schemas:
+    - public
+
+no_tests: true
+
+models:
+  destination: "internal/infra/postgres/model"
+  pkgname: "model"
+
+factory:
+  disabled: true

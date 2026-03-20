@@ -2,13 +2,16 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/yoshioka0101/voiceblog/backend/internal/health"
+	"github.com/yoshioka0101/voiceblog/backend/internal/config"
+	"github.com/yoshioka0101/voiceblog/backend/internal/di"
+	"github.com/yoshioka0101/voiceblog/backend/internal/handler"
 )
 
 type Server struct {
@@ -16,11 +19,12 @@ type Server struct {
 	http   *http.Server
 }
 
-func New(log *slog.Logger) *Server {
+func New(db *sql.DB, cfg *config.Config, log *slog.Logger) *Server {
 	router := gin.New()
 	router.Use(requestLogger(log), gin.Recovery())
 
-	health.RegisterRoutes(router)
+	container := di.New(db, cfg.GoogleClientID)
+	handler.RegisterRoutes(router, container)
 
 	return &Server{engine: router}
 }

@@ -3,20 +3,24 @@ APP_NAME=voiceblog-api
 export
 .DEFAULT_GOAL := help
 
-.PHONY: help dev server lint test fmt gen-api redoc db-up db-down
+.PHONY: help dev server lint test fmt gen-api gen-db redoc db-up db-down migrate-diff migrate-apply migrate-status
 
 help:
 	@printf "使い方: make <ターゲット>\n\n"
 	@printf "ターゲット一覧:\n"
-	@printf "  dev       APIサーバー起動（serverのエイリアス）\n"
-	@printf "  server    APIサーバー起動\n"
-	@printf "  lint      golangci-lint 実行\n"
-	@printf "  test      go test 実行\n"
-	@printf "  fmt       Goファイルを gofmt\n"
-	@printf "  gen-api   OpenAPI の bundle を生成\n"
-	@printf "  redoc     OpenAPI ドキュメントを localhost:9999 で配信\n"
-	@printf "  db-up     MySQL を起動\n"
-	@printf "  db-down   MySQL を停止\n"
+	@printf "  dev              APIサーバー起動（serverのエイリアス）\n"
+	@printf "  server           APIサーバー起動\n"
+	@printf "  lint             golangci-lint 実行\n"
+	@printf "  test             go test 実行\n"
+	@printf "  fmt              Goファイルを gofmt\n"
+	@printf "  gen-api          OpenAPI の bundle を生成\n"
+	@printf "  gen-db           bobgen-psql で DB モデルを生成\n"
+	@printf "  redoc            OpenAPI ドキュメントを localhost:3001 で配信\n"
+	@printf "  db-up            PostgreSQL を起動\n"
+	@printf "  db-down          PostgreSQL を停止\n"
+	@printf "  migrate-diff     Atlas マイグレーション差分を生成\n"
+	@printf "  migrate-apply    Atlas マイグレーションを適用\n"
+	@printf "  migrate-status   Atlas マイグレーションの状態を確認\n"
 
 dev:
 	go run ./cmd/api
@@ -36,6 +40,9 @@ fmt:
 gen-api:
 	npx @redocly/cli@latest bundle openapi/openapi.yaml -o openapi/gen-openapi.yaml
 
+gen-db: ## bobgen-psql で DB モデルを生成
+	go tool bobgen-psql
+
 redoc:
 	npx @redocly/cli@1.34.2 preview-docs -p 3001 openapi/openapi.yaml
 
@@ -44,3 +51,12 @@ db-up:
 
 db-down:
 	docker compose -f docker-compose.yml down
+
+migrate-diff:
+	cd .. && atlas migrate diff --env local
+
+migrate-apply:
+	cd .. && atlas migrate apply --env local
+
+migrate-status:
+	cd .. && atlas migrate status --env local

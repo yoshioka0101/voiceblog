@@ -1,24 +1,13 @@
-//
-//  ContentView.swift
-//  VoiceBlog
-//
-//  Created by yuki.shishido on 2026/03/20.
-//
-
 import SwiftUI
 
 struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!!")
-        }
-        .padding()
-    }
-}
+    var auth: AuthManager
 
-#Preview {
-    ContentView()
+    var body: some View {
+        if auth.isAuthenticated {
+            HomeView(auth: auth)
+        } else {
+            LoginView(auth: auth)
+        }
+    }
 }

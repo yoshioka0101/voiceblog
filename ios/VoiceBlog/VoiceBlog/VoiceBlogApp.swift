@@ -1,17 +1,16 @@
-//
-//  VoiceBlogApp.swift
-//  VoiceBlog
-//
-//  Created by yuki.shishido on 2026/03/20.
-//
-
 import SwiftUI
+import GoogleSignIn
 
 @main
 struct VoiceBlogApp: App {
+    @State private var auth = AuthManager()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(auth: auth)
+                .onOpenURL { url in
+                    GIDSignIn.sharedInstance.handle(url)
+                }
         }
     }
 }

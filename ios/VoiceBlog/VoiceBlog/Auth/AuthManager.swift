@@ -33,16 +33,16 @@ final class AuthManager {
 
         do {
             #if canImport(UIKit)
-            guard let window = UIApplication.shared
+            guard let windowScene = UIApplication.shared
                 .connectedScenes
                 .compactMap({ $0 as? UIWindowScene })
-                .flatMap(\.windows)
-                .first(where: \.isKeyWindow) else {
+                .first(where: { $0.activationState == .foregroundActive }),
+                  let rootVC = windowScene.windows.first(where: \.isKeyWindow)?.rootViewController else {
                 error = "ウィンドウが見つかりません"
                 isLoading = false
                 return
             }
-            let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: window)
+            let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootVC)
             #elseif canImport(AppKit)
             guard let window = NSApplication.shared.keyWindow else {
                 error = "ウィンドウが見つかりません"

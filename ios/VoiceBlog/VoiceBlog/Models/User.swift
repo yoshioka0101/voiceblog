@@ -1,12 +1,14 @@
 import Foundation
 
-struct User: Codable, Sendable {
+struct User: Sendable {
     let id: Int
     let email: String?
     let name: String?
     let authProvider: String
+}
 
-    enum CodingKeys: String, CodingKey {
+extension User: Codable {
+    nonisolated enum CodingKeys: String, CodingKey {
         case id
         case email
         case name

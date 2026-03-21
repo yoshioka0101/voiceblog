@@ -1,4 +1,4 @@
-package me
+package handler
 
 import (
 	"net/http"
@@ -20,4 +20,8 @@ func Me(c *gin.Context) {
 		"name":          u.Name,
 		"auth_provider": u.AuthProvider,
 	})
+}
+
+func RegisterProtectedRoutes(r gin.IRoutes) {
+	r.GET("/me", Me)
 }

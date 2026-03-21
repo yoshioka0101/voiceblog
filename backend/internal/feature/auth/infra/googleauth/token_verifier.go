@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	domainAuth "github.com/yoshioka0101/voiceblog/backend/internal/domain/auth"
+	authdomain "github.com/yoshioka0101/voiceblog/backend/internal/feature/auth/domain"
 )
 
 type claims struct {
@@ -16,7 +16,7 @@ type claims struct {
 	jwt.RegisteredClaims
 }
 
-// TokenVerifier は Google id_token を検証する domain/auth.TokenVerifier の実装。
+// TokenVerifier は Google id_token を検証する auth feature 用の検証器。
 type TokenVerifier struct {
 	cache    *jwksCache
 	audience string
@@ -29,7 +29,7 @@ func NewTokenVerifier(audience string) *TokenVerifier {
 	}
 }
 
-func (v *TokenVerifier) Verify(_ context.Context, tokenStr string) (*domainAuth.VerifiedIdentity, error) {
+func (v *TokenVerifier) Verify(ctx context.Context, tokenStr string) (*authdomain.VerifiedIdentity, error) {
 	c := &claims{}
 	_, err := jwt.ParseWithClaims(tokenStr, c, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
@@ -39,7 +39,7 @@ func (v *TokenVerifier) Verify(_ context.Context, tokenStr string) (*domainAuth.
 		if !ok {
 			return nil, fmt.Errorf("missing kid in token header")
 		}
-		return v.cache.getKey(kid)
+		return v.cache.getKey(ctx, kid)
 	}, jwt.WithAudience(v.audience))
 	if err != nil {
 		return nil, fmt.Errorf("verify token: %w", err)
@@ -50,7 +50,7 @@ func (v *TokenVerifier) Verify(_ context.Context, tokenStr string) (*domainAuth.
 		return nil, fmt.Errorf("invalid issuer: %s", iss)
 	}
 
-	return &domainAuth.VerifiedIdentity{
+	return &authdomain.VerifiedIdentity{
 		Provider: "google",
 		Subject:  c.Sub,
 		Email:    c.Email,

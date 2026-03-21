@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -20,8 +19,9 @@ type Server struct {
 }
 
 func New(db *sql.DB, cfg *config.Config, log *slog.Logger) *Server {
+	configureGinLogging(log)
 	router := gin.New()
-	router.Use(requestLogger(log), gin.Recovery())
+	router.Use(requestLogger(log), recoveryLogger(log))
 
 	container := di.New(db, cfg.GoogleClientID)
 	handler.RegisterRoutes(router, container)
@@ -42,28 +42,4 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		return nil
 	}
 	return s.http.Shutdown(ctx)
-}
-
-func requestLogger(log *slog.Logger) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		start := time.Now()
-		path := c.Request.URL.Path
-		raw := c.Request.URL.RawQuery
-
-		c.Next()
-
-		latency := time.Since(start)
-		status := c.Writer.Status()
-
-		if raw != "" {
-			path = path + "?" + raw
-		}
-
-		log.Info("request",
-			slog.String("method", c.Request.Method),
-			slog.String("path", path),
-			slog.Int("status", status),
-			slog.Duration("latency", latency),
-		)
-	}
 }

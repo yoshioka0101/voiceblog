@@ -8,18 +8,18 @@ import (
 	"github.com/stephenafamo/bob/dialect/psql"
 	"github.com/stephenafamo/bob/dialect/psql/im"
 
-	domain "github.com/yoshioka0101/voiceblog/backend/internal/domain/user"
+	userdomain "github.com/yoshioka0101/voiceblog/backend/internal/feature/user/domain"
 )
 
-type UserRepository struct {
+type Repository struct {
 	db *sql.DB
 }
 
-func NewUserRepository(db *sql.DB) *UserRepository {
-	return &UserRepository{db: db}
+func NewRepository(db *sql.DB) *Repository {
+	return &Repository{db: db}
 }
 
-func (r *UserRepository) FindOrCreate(ctx context.Context, provider, subject, email, name string) (*domain.User, error) {
+func (r *Repository) FindOrCreate(ctx context.Context, provider, subject, email, name string) (*userdomain.User, error) {
 	q := psql.Insert(
 		im.Into("users", "auth_provider", "auth_subject", "email", "name", "updated_at"),
 		im.Values(psql.Arg(provider, subject, email, name), psql.Raw("NOW()")),
@@ -34,7 +34,7 @@ func (r *UserRepository) FindOrCreate(ctx context.Context, provider, subject, em
 		return nil, fmt.Errorf("build query: %w", err)
 	}
 
-	u := &domain.User{}
+	u := &userdomain.User{}
 	row := r.db.QueryRowContext(ctx, queryStr, args...)
 	if err := row.Scan(&u.ID, &u.AuthProvider, &u.AuthSubject, &u.Email, &u.Name); err != nil {
 		return nil, fmt.Errorf("upsert user: %w", err)

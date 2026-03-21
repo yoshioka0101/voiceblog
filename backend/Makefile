@@ -1,6 +1,11 @@
 APP_NAME=voiceblog-api
 -include .env
 export
+POSTGRES_PORT ?= 5433
+DB_DSN ?= postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@127.0.0.1:$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=disable
+ATLAS_MIGRATION_DIR := file://migrations/migrations
+ATLAS_SCHEMA_FILE := file://migrations/schema.hcl
+ATLAS_DEV_URL ?= docker://postgres/16/dev?search_path=public
 .DEFAULT_GOAL := help
 
 .PHONY: help dev server lint test fmt gen-api gen-db redoc db-up db-down migrate-diff migrate-apply migrate-status
@@ -41,7 +46,7 @@ gen-api:
 	npx @redocly/cli@latest bundle openapi/openapi.yaml -o openapi/gen-openapi.yaml
 
 gen-db: ## bobgen-psql で DB モデルを生成
-	go tool bobgen-psql
+	PSQL_DSN="$(DB_DSN)" go tool bobgen-psql
 
 redoc:
 	npx @redocly/cli@1.34.2 preview-docs -p 3001 openapi/openapi.yaml
@@ -53,10 +58,10 @@ db-down:
 	docker compose -f docker-compose.yml down
 
 migrate-diff:
-	cd .. && atlas migrate diff --env local
+	cd .. && atlas migrate diff $(name) --dir "$(ATLAS_MIGRATION_DIR)" --to "$(ATLAS_SCHEMA_FILE)" --dev-url "$(ATLAS_DEV_URL)"
 
 migrate-apply:
-	cd .. && atlas migrate apply --env local
+	cd .. && atlas migrate apply --dir "$(ATLAS_MIGRATION_DIR)" --url "$(DB_DSN)"
 
 migrate-status:
-	cd .. && atlas migrate status --env local
+	cd .. && atlas migrate status --dir "$(ATLAS_MIGRATION_DIR)" --url "$(DB_DSN)"

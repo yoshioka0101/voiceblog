@@ -6,13 +6,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	domainUser "github.com/yoshioka0101/voiceblog/backend/internal/domain/user"
-	authUseCase "github.com/yoshioka0101/voiceblog/backend/internal/usecase/auth"
+	authusecase "github.com/yoshioka0101/voiceblog/backend/internal/feature/auth/usecase"
+	userdomain "github.com/yoshioka0101/voiceblog/backend/internal/feature/user/domain"
 )
 
 const currentUserKey = "currentUser"
 
-func Auth(authUC *authUseCase.UseCase) gin.HandlerFunc {
+func Auth(authUC *authusecase.UseCase) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		header := c.GetHeader("Authorization")
 		if !strings.HasPrefix(header, "Bearer ") {
@@ -32,11 +32,11 @@ func Auth(authUC *authUseCase.UseCase) gin.HandlerFunc {
 	}
 }
 
-func CurrentUser(c *gin.Context) (*domainUser.User, bool) {
+func CurrentUser(c *gin.Context) (*userdomain.User, bool) {
 	v, ok := c.Get(currentUserKey)
 	if !ok {
 		return nil, false
 	}
-	u, ok := v.(*domainUser.User)
+	u, ok := v.(*userdomain.User)
 	return u, ok
 }

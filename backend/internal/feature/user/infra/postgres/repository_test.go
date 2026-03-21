@@ -4,13 +4,13 @@ import (
 	"context"
 	"testing"
 
-	pg "github.com/yoshioka0101/voiceblog/backend/internal/infra/postgres"
+	pg "github.com/yoshioka0101/voiceblog/backend/internal/feature/user/infra/postgres"
 	"github.com/yoshioka0101/voiceblog/backend/internal/testutil"
 )
 
 func TestFindOrCreate_NewUser(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := pg.NewUserRepository(db)
+	repo := pg.NewRepository(db)
 	ctx := context.Background()
 
 	user, err := repo.FindOrCreate(ctx, "google", "sub-001", "alice@example.com", "Alice")
@@ -37,7 +37,7 @@ func TestFindOrCreate_NewUser(t *testing.T) {
 
 func TestFindOrCreate_ExistingUser_Updates(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := pg.NewUserRepository(db)
+	repo := pg.NewRepository(db)
 	ctx := context.Background()
 
 	// 1回目: 新規作成
@@ -66,7 +66,7 @@ func TestFindOrCreate_ExistingUser_Updates(t *testing.T) {
 
 func TestFindOrCreate_DifferentProviders(t *testing.T) {
 	db := testutil.SetupTestDB(t)
-	repo := pg.NewUserRepository(db)
+	repo := pg.NewRepository(db)
 	ctx := context.Background()
 
 	// 同じ subject でも provider が異なれば別ユーザー

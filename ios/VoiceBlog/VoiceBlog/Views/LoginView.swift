@@ -22,20 +22,35 @@ struct LoginView: View {
             if auth.isLoading {
                 ProgressView()
             } else {
-                Button {
-                    Task {
-                        await auth.signInWithGoogle()
+                VStack(spacing: 12) {
+                    Button {
+                        Task {
+                            await auth.signInWithGoogle()
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "person.crop.circle")
+                            Text("Googleでサインイン")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(.blue)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                } label: {
-                    HStack {
-                        Image(systemName: "person.crop.circle")
-                        Text("Googleでサインイン")
+
+                    #if DEBUG
+                    Button {
+                        auth.signInForDevelopment()
+                    } label: {
+                        Text("開発用にホームを表示")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color(.secondarySystemBackground))
+                            .foregroundStyle(.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(.blue)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    #endif
                 }
                 .padding(.horizontal, 32)
             }

@@ -16,6 +16,8 @@ import (
 )
 
 func main() {
+	slog.SetDefault(logger.New(slog.LevelInfo))
+
 	cfg, err := config.Load()
 	if err != nil {
 		slog.Error("failed to load config", slog.String("error", err.Error()))
@@ -23,6 +25,7 @@ func main() {
 	}
 
 	log := logger.New(cfg.LogLevel)
+	slog.SetDefault(log)
 	addr := ":" + cfg.Port
 
 	dbConn, err := db.Open(cfg.DBDSN, log)

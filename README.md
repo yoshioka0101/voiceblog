@@ -13,16 +13,19 @@ voiceblog/
 │   │   ├── config/           # 環境変数・設定
 │   │   ├── db/               # DB接続
 │   │   ├── di/               # DIコンテナ
-│   │   ├── domain/           # ドメインモデル・インターフェース
-│   │   │   ├── auth/         #   認証（TokenVerifier）
-│   │   │   └── user/         #   ユーザー（Repository）
+│   │   ├── feature/          # 機能単位の実装
+│   │   │   ├── auth/         #   認証 feature
+│   │   │   │   ├── domain/
+│   │   │   │   ├── infra/googleauth/
+│   │   │   │   └── usecase/
+│   │   │   ├── health/       #   ヘルスチェック feature
+│   │   │   └── user/         #   ユーザー feature
+│   │   │       ├── domain/
+│   │   │       ├── handler/
+│   │   │       ├── infra/postgres/
+│   │   │       └── usecase/
 │   │   ├── handler/          # HTTPハンドラ・ルーティング
 │   │   │   └── middleware/   #   認証ミドルウェア
-│   │   ├── infra/            # 外部サービス実装
-│   │   │   ├── googleauth/   #   Google JWKS + JWT検証
-│   │   │   └── postgres/     #   PostgreSQL リポジトリ
-│   │   ├── usecase/          # ユースケース
-│   │   │   └── auth/         #   認証ユースケース
 │   │   ├── logger/           # ロギング
 │   │   ├── server/           # HTTPサーバー起動
 │   │   └── testutil/         # テストヘルパー（testcontainers）
@@ -59,14 +62,18 @@ voiceblog/
 ### バックエンド (Go)
 
 1. `backend/.env.sample` を `.env` にコピーして環境変数を設定。
-2. Docker で DB を起動し、マイグレーションを適用してサーバーを起動。
+2. Docker Desktop または Colima を起動する。
+3. Docker で DB を起動し、マイグレーションを適用してサーバーを起動。
 
 ```bash
 cd backend
+cp .env.sample .env
 make db-up
 make migrate-apply
 make dev
 ```
+
+開発用 PostgreSQL はホスト側 `5433` 番ポートを使います。ローカルの別 PostgreSQL が `5432` を使っていても衝突しません。
 
 #### 主な Make ターゲット
 
@@ -107,16 +114,17 @@ make migrate-diff     # スキーマ差分生成
 
 ## アーキテクチャ
 
-### バックエンド（Clean Architecture）
+### バックエンド（Feature Architecture）
 
 ```
-handler → usecase → domain ← infra
+handler/router → feature/<name>/{handler,usecase,domain,infra}
+                         ↑
+                    middleware は共通レイヤーに維持
 ```
 
-- **domain**: ビジネスルールとインターフェース定義。外部依存なし
-- **usecase**: アプリケーションロジック。domain のインターフェースに依存
-- **infra**: 外部サービスの実装（PostgreSQL, Google Auth）
-- **handler**: HTTP リクエストの受付とレスポンス
+- **feature 単位で完結**: `auth`、`user`、`health` ごとに `domain/usecase/infra/handler` を持ち、並行実装時の衝突を減らす
+- **router は薄く維持**: ルーティングと middleware の接続だけを担い、feature の組み立ては `di` と各 `feature` package に寄せる
+- **middleware は共通のまま**: 認証 middleware は `internal/handler/middleware` に残し、feature 側の usecase / domain にだけ依存させる
 
 ### iOS（MVVM）
 

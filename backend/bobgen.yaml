@@ -1,5 +1,4 @@
 psql:
-  dsn: "postgres://voiceblog:nibj6686@127.0.0.1:5432/voiceblog?sslmode=disable"
   schemas:
     - public
 

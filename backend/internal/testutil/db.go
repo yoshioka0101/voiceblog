@@ -3,8 +3,10 @@ package testutil
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"testing"
 	"time"
 
@@ -19,17 +21,25 @@ import (
 // テスト終了時にコンテナは自動破棄される。
 func SetupTestDB(t *testing.T) *sql.DB {
 	t.Helper()
+	testcontainers.SkipIfProviderIsNotHealthy(t)
 
 	ctx := context.Background()
 
-	migrationPath := filepath.Join(projectRoot(), "migrations", "migrations", "20260320_create_users.sql")
+	migrationPaths, err := filepath.Glob(filepath.Join(projectRoot(), "migrations", "migrations", "*.sql"))
+	if err != nil {
+		t.Fatalf("failed to list migrations: %v", err)
+	}
+	if len(migrationPaths) == 0 {
+		t.Fatal("no migrations found")
+	}
+	sort.Strings(migrationPaths)
 
 	pgContainer, err := postgres.Run(ctx,
 		"postgres:16-alpine",
 		postgres.WithDatabase("voiceblog_test"),
 		postgres.WithUsername("test"),
 		postgres.WithPassword("test"),
-		postgres.WithInitScripts(migrationPath),
+		postgres.WithInitScripts(migrationPaths...),
 		testcontainers.WithWaitStrategy(
 			wait.ForLog("database system is ready to accept connections").
 				WithOccurrence(2).
@@ -80,4 +90,29 @@ func projectRoot() string {
 	// filename = .../voiceblog/backend/internal/testutil/db.go
 	// backend の親がプロジェクトルート
 	return filepath.Join(filepath.Dir(filename), "..", "..", "..")
+}
+
+func SeedUser(t *testing.T, db *sql.DB, provider, subject, email, name string) int64 {
+	t.Helper()
+
+	const query = `
+		INSERT INTO users (auth_provider, auth_subject, email, name)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id
+	`
+
+	var id int64
+	if err := db.QueryRowContext(context.Background(), query, provider, subject, email, name).Scan(&id); err != nil {
+		t.Fatalf("failed to seed user: %v", err)
+	}
+
+	return id
+}
+
+func MustFindMigrationPath(name string) string {
+	return filepath.Join(projectRoot(), "migrations", "migrations", name)
+}
+
+func FormatDSN(host string, port int, dbName string) string {
+	return fmt.Sprintf("postgres://test:test@%s:%d/%s?sslmode=disable", host, port, dbName)
 }

@@ -1,0 +1,12 @@
+type: object
+properties:
+  full_text:
+    type: string
+  segments_json:
+    type: array
+    items:
+      type: object
+      additionalProperties: true
+required:
+  - full_text
+  - segments_json

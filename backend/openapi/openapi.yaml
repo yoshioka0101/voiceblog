@@ -7,10 +7,18 @@ paths:
     $ref: ./paths/health.yaml
   /me:
     $ref: ./paths/me.yaml
+  /transcriptions:
+    $ref: ./paths/transcriptions.yaml
+  /transcriptions/{id}:
+    $ref: ./paths/transcription_by_id.yaml
 components:
   schemas:
     HealthResponse:
       $ref: ./components/schemas/health.yaml
+    Transcription:
+      $ref: ./components/schemas/transcription.yaml
+    TranscriptionCreateRequest:
+      $ref: ./components/schemas/transcription_create_request.yaml
     User:
       $ref: ./components/schemas/user.yaml
   securitySchemes:

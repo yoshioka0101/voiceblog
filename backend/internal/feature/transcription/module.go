@@ -1,0 +1,23 @@
+package transcription
+
+import (
+	"database/sql"
+
+	"github.com/yoshioka0101/voiceblog/backend/internal/feature/transcription/domain"
+	"github.com/yoshioka0101/voiceblog/backend/internal/feature/transcription/infra/postgres"
+	"github.com/yoshioka0101/voiceblog/backend/internal/feature/transcription/usecase"
+)
+
+type Feature struct {
+	Repository domain.Repository
+	UseCase    *usecase.UseCase
+}
+
+func New(db *sql.DB) *Feature {
+	repo := postgres.NewRepository(db)
+
+	return &Feature{
+		Repository: repo,
+		UseCase:    usecase.New(repo),
+	}
+}

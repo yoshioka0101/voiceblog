@@ -109,6 +109,28 @@ func SeedUser(t *testing.T, db *sql.DB, provider, subject, email, name string) i
 	return id
 }
 
+func SeedPrompt(t *testing.T, db *sql.DB, userID *int64, name, body string, isActive, isDefault bool) int64 {
+	t.Helper()
+
+	const query = `
+		INSERT INTO prompts (user_id, name, body, is_active, is_default)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id
+	`
+
+	var id int64
+	var nullableUserID any
+	if userID != nil {
+		nullableUserID = *userID
+	}
+
+	if err := db.QueryRowContext(context.Background(), query, nullableUserID, name, body, isActive, isDefault).Scan(&id); err != nil {
+		t.Fatalf("failed to seed prompt: %v", err)
+	}
+
+	return id
+}
+
 func MustFindMigrationPath(name string) string {
 	return filepath.Join(projectRoot(), "migrations", "migrations", name)
 }

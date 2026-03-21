@@ -5,6 +5,7 @@ import (
 
 	"github.com/yoshioka0101/voiceblog/backend/internal/di"
 	"github.com/yoshioka0101/voiceblog/backend/internal/feature/health"
+	promptfeature "github.com/yoshioka0101/voiceblog/backend/internal/feature/prompt"
 	transcriptionfeature "github.com/yoshioka0101/voiceblog/backend/internal/feature/transcription"
 	userfeature "github.com/yoshioka0101/voiceblog/backend/internal/feature/user"
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler/middleware"
@@ -15,6 +16,7 @@ func RegisterRoutes(r *gin.Engine, c *di.Container) {
 
 	authGroup := r.Group("/")
 	authGroup.Use(middleware.Auth(c.Auth.UseCase))
+	promptfeature.RegisterProtectedRoutes(authGroup, c.Prompt)
 	userfeature.RegisterProtectedRoutes(authGroup)
 	transcriptionfeature.RegisterProtectedRoutes(authGroup, c.Transcription)
 }

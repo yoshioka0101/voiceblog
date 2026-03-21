@@ -14,10 +14,197 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/health'
+  /me:
+    get:
+      summary: Current user
+      operationId: getMe
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/user'
+        '401':
+          description: Unauthorized
+  /prompts:
+    get:
+      summary: List current user's prompts and system prompts
+      operationId: listPrompts
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/prompt'
+        '401':
+          description: Unauthorized
+    post:
+      summary: Create prompt
+      operationId: createPrompt
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/prompt_create_request'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/prompt'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+  /prompts/{id}:
+    patch:
+      summary: Update a user prompt
+      operationId: updatePrompt
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/prompt_update_request'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/prompt'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+    delete:
+      summary: Delete a user prompt
+      operationId: deletePrompt
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+  /transcriptions:
+    get:
+      summary: List current user's transcriptions
+      operationId: listTranscriptions
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/transcription'
+        '401':
+          description: Unauthorized
+    post:
+      summary: Create transcription
+      operationId: createTranscription
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/transcription_create_request'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/transcription'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+  /transcriptions/{id}:
+    get:
+      summary: Get transcription detail
+      operationId: getTranscription
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/transcription'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
 components:
   schemas:
     HealthResponse:
       $ref: '#/components/schemas/health'
+    Prompt:
+      $ref: '#/components/schemas/prompt'
+    PromptCreateRequest:
+      $ref: '#/components/schemas/prompt_create_request'
+    PromptUpdateRequest:
+      $ref: '#/components/schemas/prompt_update_request'
+    Transcription:
+      $ref: '#/components/schemas/transcription'
+    TranscriptionCreateRequest:
+      $ref: '#/components/schemas/transcription_create_request'
+    User:
+      $ref: '#/components/schemas/user'
     health:
       type: object
       properties:
@@ -26,3 +213,113 @@ components:
           example: ok
       required:
         - status
+    user:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        auth_provider:
+          type: string
+      required:
+        - id
+        - auth_provider
+    prompt:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        body:
+          type: string
+        is_active:
+          type: boolean
+        is_default:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - body
+        - is_active
+        - is_default
+        - created_at
+        - updated_at
+    prompt_create_request:
+      type: object
+      properties:
+        name:
+          type: string
+        body:
+          type: string
+        is_active:
+          type: boolean
+      required:
+        - name
+        - body
+    prompt_update_request:
+      type: object
+      properties:
+        name:
+          type: string
+        body:
+          type: string
+        is_active:
+          type: boolean
+    transcription:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        full_text:
+          type: string
+        segments_json:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - user_id
+        - full_text
+        - segments_json
+        - created_at
+        - updated_at
+    transcription_create_request:
+      type: object
+      properties:
+        full_text:
+          type: string
+        segments_json:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+      required:
+        - full_text
+        - segments_json
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

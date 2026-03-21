@@ -7,6 +7,10 @@ paths:
     $ref: ./paths/health.yaml
   /me:
     $ref: ./paths/me.yaml
+  /prompts:
+    $ref: ./paths/prompts.yaml
+  /prompts/{id}:
+    $ref: ./paths/prompt_by_id.yaml
   /transcriptions:
     $ref: ./paths/transcriptions.yaml
   /transcriptions/{id}:
@@ -15,6 +19,12 @@ components:
   schemas:
     HealthResponse:
       $ref: ./components/schemas/health.yaml
+    Prompt:
+      $ref: ./components/schemas/prompt.yaml
+    PromptCreateRequest:
+      $ref: ./components/schemas/prompt_create_request.yaml
+    PromptUpdateRequest:
+      $ref: ./components/schemas/prompt_update_request.yaml
     Transcription:
       $ref: ./components/schemas/transcription.yaml
     TranscriptionCreateRequest:

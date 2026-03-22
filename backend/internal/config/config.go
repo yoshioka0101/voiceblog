@@ -8,9 +8,10 @@ import (
 )
 
 type Config struct {
-	Port     string
-	LogLevel slog.Level
-	DBDSN    string
+	Port           string
+	LogLevel       slog.Level
+	DBDSN          string
+	GoogleClientID string
 }
 
 func Load() (Config, error) {
@@ -29,10 +30,16 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("DB_DSN is required")
 	}
 
+	googleClientID := getEnv("GOOGLE_CLIENT_ID", "")
+	if googleClientID == "" {
+		return Config{}, fmt.Errorf("GOOGLE_CLIENT_ID is required")
+	}
+
 	return Config{
-		Port:     port,
-		LogLevel: logLevel,
-		DBDSN:    dbDSN,
+		Port:           port,
+		LogLevel:       logLevel,
+		DBDSN:          dbDSN,
+		GoogleClientID: googleClientID,
 	}, nil
 }
 

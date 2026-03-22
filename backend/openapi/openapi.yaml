@@ -5,7 +5,16 @@ info:
 paths:
   /health:
     $ref: ./paths/health.yaml
+  /me:
+    $ref: ./paths/me.yaml
 components:
   schemas:
     HealthResponse:
       $ref: ./components/schemas/health.yaml
+    User:
+      $ref: ./components/schemas/user.yaml
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

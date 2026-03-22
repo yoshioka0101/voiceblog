@@ -16,6 +16,8 @@ import (
 )
 
 func main() {
+	slog.SetDefault(logger.New(slog.LevelInfo))
+
 	cfg, err := config.Load()
 	if err != nil {
 		slog.Error("failed to load config", slog.String("error", err.Error()))
@@ -23,6 +25,7 @@ func main() {
 	}
 
 	log := logger.New(cfg.LogLevel)
+	slog.SetDefault(log)
 	addr := ":" + cfg.Port
 
 	dbConn, err := db.Open(cfg.DBDSN, log)
@@ -36,7 +39,7 @@ func main() {
 		}
 	}()
 
-	srv := server.New(log)
+	srv := server.New(dbConn, &cfg, log)
 	go func() {
 		if err := srv.Run(addr); err != nil && err != http.ErrServerClosed {
 			log.Error("server stopped", slog.String("error", err.Error()))

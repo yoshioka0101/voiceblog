@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 const pingTimeout = 5 * time.Second
@@ -17,7 +17,7 @@ func Open(dsn string, log *slog.Logger) (*sql.DB, error) {
 		return nil, fmt.Errorf("DB_DSN is empty")
 	}
 
-	conn, err := sql.Open("mysql", dsn)
+	conn, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open db: %w", err)
 	}

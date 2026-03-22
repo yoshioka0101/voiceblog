@@ -2,13 +2,15 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/yoshioka0101/voiceblog/backend/internal/health"
+	"github.com/yoshioka0101/voiceblog/backend/internal/config"
+	"github.com/yoshioka0101/voiceblog/backend/internal/di"
+	"github.com/yoshioka0101/voiceblog/backend/internal/handler"
 )
 
 type Server struct {
@@ -16,11 +18,13 @@ type Server struct {
 	http   *http.Server
 }
 
-func New(log *slog.Logger) *Server {
+func New(db *sql.DB, cfg *config.Config, log *slog.Logger) *Server {
+	configureGinLogging(log)
 	router := gin.New()
-	router.Use(requestLogger(log), gin.Recovery())
+	router.Use(requestLogger(log), recoveryLogger(log))
 
-	health.RegisterRoutes(router)
+	container := di.New(db, cfg.GoogleClientID)
+	handler.RegisterRoutes(router, container)
 
 	return &Server{engine: router}
 }
@@ -38,28 +42,4 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		return nil
 	}
 	return s.http.Shutdown(ctx)
-}
-
-func requestLogger(log *slog.Logger) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		start := time.Now()
-		path := c.Request.URL.Path
-		raw := c.Request.URL.RawQuery
-
-		c.Next()
-
-		latency := time.Since(start)
-		status := c.Writer.Status()
-
-		if raw != "" {
-			path = path + "?" + raw
-		}
-
-		log.Info("request",
-			slog.String("method", c.Request.Method),
-			slog.String("path", path),
-			slog.Int("status", status),
-			slog.Duration("latency", latency),
-		)
-	}
 }

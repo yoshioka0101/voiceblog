@@ -1,0 +1,12 @@
+psql:
+  schemas:
+    - public
+
+no_tests: true
+
+models:
+  destination: "internal/infra/postgres/model"
+  pkgname: "model"
+
+factory:
+  disabled: true

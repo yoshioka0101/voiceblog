@@ -48,7 +48,7 @@ voiceblog/
 
 | レイヤー | 技術 |
 |---|---|
-| バックエンド | Go 1.25 / Gin / PostgreSQL |
+| バックエンド | Go 1.26.1 / Gin / PostgreSQL |
 | ORM / クエリビルダ | bob |
 | 認証 | OIDC（Google JWT検証） |
 | iOS | SwiftUI / @Observable (iOS 17+) |
@@ -60,6 +60,8 @@ voiceblog/
 ## セットアップ
 
 ### バックエンド (Go)
+
+Go 1.26.1 が必要です。
 
 1. `backend/.env.sample` を `.env` にコピーして環境変数を設定。
 2. Docker Desktop または Colima を起動する。

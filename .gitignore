@@ -44,14 +44,13 @@ bin/
 *.test
 
 # Xcode
-ios/*.xcodeproj/xcuserdata/
-ios/*.xcworkspace/xcuserdata/
-ios/*.xcworkspace/xcshareddata/
+ios/**/xcuserdata/
+ios/**/*.xcuserstate
 ios/DerivedData/
-ios/*.hmap
-ios/*.ipa
-ios/*.dSYM.zip
-ios/*.dSYM
+ios/**/*.hmap
+ios/**/*.ipa
+ios/**/*.dSYM.zip
+ios/**/*.dSYM
 ios/Pods/
 ios/.build/
 ios/VoiceBlog/Config/LocalSecrets.xcconfig

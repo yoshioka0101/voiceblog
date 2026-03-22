@@ -1,4 +1,4 @@
-package postgres
+package postgresql
 
 import (
 	"context"
@@ -8,18 +8,18 @@ import (
 	"github.com/stephenafamo/bob/dialect/psql"
 	"github.com/stephenafamo/bob/dialect/psql/im"
 
-	userdomain "github.com/yoshioka0101/voiceblog/backend/internal/feature/user/domain"
+	entity "github.com/yoshioka0101/voiceblog/backend/internal/entity/user"
 )
 
-type Repository struct {
+type UserRepository struct {
 	db *sql.DB
 }
 
-func NewRepository(db *sql.DB) *Repository {
-	return &Repository{db: db}
+func NewUserRepository(db *sql.DB) *UserRepository {
+	return &UserRepository{db: db}
 }
 
-func (r *Repository) FindOrCreate(ctx context.Context, provider, subject, email, name string) (*userdomain.User, error) {
+func (r *UserRepository) FindOrCreate(ctx context.Context, provider, subject, email, name string) (*entity.User, error) {
 	q := psql.Insert(
 		im.Into("users", "auth_provider", "auth_subject", "email", "name", "updated_at"),
 		im.Values(psql.Arg(provider, subject, email, name), psql.Raw("NOW()")),
@@ -34,7 +34,7 @@ func (r *Repository) FindOrCreate(ctx context.Context, provider, subject, email,
 		return nil, fmt.Errorf("build query: %w", err)
 	}
 
-	u := &userdomain.User{}
+	u := &entity.User{}
 	row := r.db.QueryRowContext(ctx, queryStr, args...)
 	if err := row.Scan(&u.ID, &u.AuthProvider, &u.AuthSubject, &u.Email, &u.Name); err != nil {
 		return nil, fmt.Errorf("upsert user: %w", err)

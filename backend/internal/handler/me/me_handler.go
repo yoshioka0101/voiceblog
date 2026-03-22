@@ -1,4 +1,4 @@
-package handler
+package me
 
 import (
 	"net/http"
@@ -7,6 +7,10 @@ import (
 
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler/middleware"
 )
+
+func RegisterRoutes(r gin.IRoutes, auth gin.HandlerFunc) {
+	r.GET("/me", auth, Me)
+}
 
 func Me(c *gin.Context) {
 	u, ok := middleware.CurrentUser(c)
@@ -20,8 +24,4 @@ func Me(c *gin.Context) {
 		"name":          u.Name,
 		"auth_provider": u.AuthProvider,
 	})
-}
-
-func RegisterProtectedRoutes(r gin.IRoutes) {
-	r.GET("/me", Me)
 }

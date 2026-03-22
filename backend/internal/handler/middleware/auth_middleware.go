@@ -6,8 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	authusecase "github.com/yoshioka0101/voiceblog/backend/internal/feature/auth/usecase"
-	userdomain "github.com/yoshioka0101/voiceblog/backend/internal/feature/user/domain"
+	userdomain "github.com/yoshioka0101/voiceblog/backend/internal/entity/user"
+	authusecase "github.com/yoshioka0101/voiceblog/backend/internal/usecase/auth"
 )
 
 const currentUserKey = "currentUser"

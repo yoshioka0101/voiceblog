@@ -1,24 +1,24 @@
-package usecase
+package auth
 
 import (
 	"context"
 	"fmt"
 
-	authdomain "github.com/yoshioka0101/voiceblog/backend/internal/feature/auth/domain"
-	userdomain "github.com/yoshioka0101/voiceblog/backend/internal/feature/user/domain"
+	domainAuth "github.com/yoshioka0101/voiceblog/backend/internal/entity/auth"
+	domainUser "github.com/yoshioka0101/voiceblog/backend/internal/entity/user"
 )
 
 type UseCase struct {
-	verifier authdomain.TokenVerifier
-	userRepo userdomain.Repository
+	verifier domainAuth.TokenVerifier
+	userRepo domainUser.Repository
 }
 
-func New(verifier authdomain.TokenVerifier, userRepo userdomain.Repository) *UseCase {
+func NewUseCase(verifier domainAuth.TokenVerifier, userRepo domainUser.Repository) *UseCase {
 	return &UseCase{verifier: verifier, userRepo: userRepo}
 }
 
 // Authenticate はトークンを検証し、対応するユーザーを返す（存在しなければ作成）。
-func (uc *UseCase) Authenticate(ctx context.Context, token string) (*userdomain.User, error) {
+func (uc *UseCase) Authenticate(ctx context.Context, token string) (*domainUser.User, error) {
 	identity, err := uc.verifier.Verify(ctx, token)
 	if err != nil {
 		return nil, fmt.Errorf("verify token: %w", err)

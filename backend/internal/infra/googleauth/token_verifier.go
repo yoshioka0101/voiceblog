@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	authdomain "github.com/yoshioka0101/voiceblog/backend/internal/feature/auth/domain"
+	domainAuth "github.com/yoshioka0101/voiceblog/backend/internal/entity/auth"
 )
 
 type claims struct {
@@ -29,7 +29,7 @@ func NewTokenVerifier(audience string) *TokenVerifier {
 	}
 }
 
-func (v *TokenVerifier) Verify(ctx context.Context, tokenStr string) (*authdomain.VerifiedIdentity, error) {
+func (v *TokenVerifier) Verify(ctx context.Context, tokenStr string) (*domainAuth.VerifiedIdentity, error) {
 	c := &claims{}
 	_, err := jwt.ParseWithClaims(tokenStr, c, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
@@ -50,7 +50,7 @@ func (v *TokenVerifier) Verify(ctx context.Context, tokenStr string) (*authdomai
 		return nil, fmt.Errorf("invalid issuer: %s", iss)
 	}
 
-	return &authdomain.VerifiedIdentity{
+	return &domainAuth.VerifiedIdentity{
 		Provider: "google",
 		Subject:  c.Sub,
 		Email:    c.Email,

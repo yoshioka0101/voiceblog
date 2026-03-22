@@ -4,15 +4,12 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/yoshioka0101/voiceblog/backend/internal/di"
-	"github.com/yoshioka0101/voiceblog/backend/internal/feature/health"
-	userfeature "github.com/yoshioka0101/voiceblog/backend/internal/feature/user"
+	"github.com/yoshioka0101/voiceblog/backend/internal/handler/health"
+	"github.com/yoshioka0101/voiceblog/backend/internal/handler/me"
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler/middleware"
 )
 
 func RegisterRoutes(r *gin.Engine, c *di.Container) {
 	health.RegisterRoutes(r)
-
-	authGroup := r.Group("/")
-	authGroup.Use(middleware.Auth(c.Auth.UseCase))
-	userfeature.RegisterProtectedRoutes(authGroup)
+	me.RegisterRoutes(r, middleware.Auth(c.UseCases.Auth))
 }

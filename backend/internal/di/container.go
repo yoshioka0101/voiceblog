@@ -3,21 +3,41 @@ package di
 import (
 	"database/sql"
 
-	authfeature "github.com/yoshioka0101/voiceblog/backend/internal/feature/auth"
-	userfeature "github.com/yoshioka0101/voiceblog/backend/internal/feature/user"
+	domainUser "github.com/yoshioka0101/voiceblog/backend/internal/entity/user"
+	"github.com/yoshioka0101/voiceblog/backend/internal/infra/googleauth"
+	"github.com/yoshioka0101/voiceblog/backend/internal/repository/postgresql"
+	authUseCase "github.com/yoshioka0101/voiceblog/backend/internal/usecase/auth"
+	userUseCase "github.com/yoshioka0101/voiceblog/backend/internal/usecase/user"
 )
 
+type Repositories struct {
+	User domainUser.Repository
+}
+
+type UseCases struct {
+	Auth *authUseCase.UseCase
+	User *userUseCase.UseCase
+}
+
 type Container struct {
-	Auth *authfeature.Feature
-	User *userfeature.Feature
+	Repositories *Repositories
+	UseCases     *UseCases
 }
 
 func New(db *sql.DB, googleClientID string) *Container {
-	userFeature := userfeature.New(db)
-	authFeature := authfeature.New(googleClientID, userFeature.Repository)
+	userRepo := postgresql.NewUserRepository(db)
+	verifier := googleauth.NewTokenVerifier(googleClientID)
+
+	repos := &Repositories{
+		User: userRepo,
+	}
+	useCases := &UseCases{
+		Auth: authUseCase.NewUseCase(verifier, repos.User),
+		User: userUseCase.NewUseCase(repos.User),
+	}
 
 	return &Container{
-		Auth: authFeature,
-		User: userFeature,
+		Repositories: repos,
+		UseCases:     useCases,
 	}
 }

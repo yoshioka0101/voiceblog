@@ -80,7 +80,7 @@ make dev
 | コマンド | 説明 |
 |---|---|
 | `make dev` | APIサーバー起動 |
-| `make test` | テスト実行 |
+| `make test` | テスト実行（testcontainers のため Docker 必須） |
 | `make lint` | golangci-lint |
 | `make fmt` | コードフォーマット |
 | `make gen-api` | OpenAPI バンドル |
@@ -111,6 +111,8 @@ make migrate-status   # 状態確認
 make migrate-apply    # 適用
 make migrate-diff     # スキーマ差分生成
 ```
+
+`make test` は `testcontainers-go` で PostgreSQL コンテナを起動します。ローカルでは Docker Desktop または Colima を起動してから実行し、CI でも Docker が使える runner を前提にしています。
 
 ## アーキテクチャ
 

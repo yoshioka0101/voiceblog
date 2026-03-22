@@ -23,8 +23,6 @@ struct HomeView: View {
                 if let user = auth.user {
                     VStack(alignment: .leading, spacing: 12) {
                         LabeledContent("名前", value: user.name ?? "-")
-                        LabeledContent("メール", value: user.email ?? "-")
-                        LabeledContent("プロバイダ", value: user.authProvider)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()

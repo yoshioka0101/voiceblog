@@ -38,19 +38,6 @@ struct LoginView: View {
                         .foregroundStyle(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-
-                    #if DEBUG
-                    Button {
-                        auth.signInForDevelopment()
-                    } label: {
-                        Text("開発用にホームを表示")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color(.secondarySystemBackground))
-                            .foregroundStyle(.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                    #endif
                 }
                 .padding(.horizontal, 32)
             }

@@ -1,0 +1,95 @@
+import SwiftUI
+
+struct TranscriptionFormView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let onSubmit: @Sendable (TranscriptionCreateRequest) async throws -> Void
+
+    @State private var fullText = ""
+    @State private var segmentsText = Self.defaultSegmentsText
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("本文") {
+                    TextEditor(text: $fullText)
+                        .frame(minHeight: 180)
+                }
+
+                Section("segments_json") {
+                    TextEditor(text: $segmentsText)
+                        .font(.system(.body, design: .monospaced))
+                        .frame(minHeight: 240)
+
+                    Text("JSON 配列をそのまま編集します。Go 側の `[]map[string]any` は Swift 側で `JSONValue` に変換しています。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("文字起こし作成")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("閉じる") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    if isSaving {
+                        ProgressView()
+                    } else {
+                        Button("保存") {
+                            Task {
+                                await submit()
+                            }
+                        }
+                    }
+                }
+            }
+            .alert("エラー", isPresented: isShowingError) {
+                Button("閉じる", role: .cancel) {
+                    errorMessage = nil
+                }
+            } message: {
+                Text(errorMessage ?? "")
+            }
+        }
+    }
+
+    private static let defaultSegmentsText = JSONCoding.prettyPrintedString(from: [
+        [
+            "text": JSONValue.string(""),
+            "start_ms": JSONValue.int(0),
+            "end_ms": JSONValue.int(0)
+        ]
+    ])
+
+    private var isShowingError: Binding<Bool> {
+        Binding(
+            get: { errorMessage != nil },
+            set: { newValue in
+                if !newValue {
+                    errorMessage = nil
+                }
+            }
+        )
+    }
+
+    private func submit() async {
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            let request = TranscriptionCreateRequest(
+                fullText: fullText,
+                segmentsJson: try JSONCoding.decodeSegments(from: segmentsText)
+            )
+            try await onSubmit(request)
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+}

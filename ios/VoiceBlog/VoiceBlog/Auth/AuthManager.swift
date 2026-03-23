@@ -82,6 +82,14 @@ final class AuthManager {
         error = nil
     }
 
+    func fetchIDToken() async throws -> String {
+        guard let currentUser = googleSignIn.currentUser else {
+            throw AuthManagerError.invalidSession
+        }
+
+        return try await refreshedIDToken(for: currentUser)
+    }
+
     #if DEBUG
     func signInForDevelopment() {
         user = User(

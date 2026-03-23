@@ -24,8 +24,30 @@ actor APIClient {
     static let shared = APIClient()
 
     private let baseURLResult: Result<URL, APIError>
+    private let decoder: JSONDecoder
+    private let encoder: JSONEncoder
 
     init(bundle: Bundle = .main) {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let value = try container.decode(String.self)
+
+            if let date = apiDateFormatterWithFractionalSeconds.date(from: value) {
+                return date
+            }
+            if let date = apiDateFormatter.date(from: value) {
+                return date
+            }
+
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unsupported date format: \(value)")
+        }
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        self.decoder = decoder
+        self.encoder = encoder
+
         do {
             baseURLResult = .success(try bundle.apiBaseURL())
         } catch {
@@ -33,17 +55,23 @@ actor APIClient {
         }
     }
 
-    private func request<T: Decodable>(
+    private func performRequest(
         path: String,
         method: String = "GET",
-        token: String? = nil
-    ) async throws -> T {
+        token: String? = nil,
+        body: Data? = nil
+    ) async throws -> Data {
         let baseURL = try baseURLResult.get()
         let normalizedPath = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         let url = baseURL.appendingPathComponent(normalizedPath)
         var req = URLRequest(url: url)
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Accept")
+        req.httpBody = body
+
+        if body != nil {
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
 
         if let token {
             req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -62,7 +90,7 @@ actor APIClient {
 
         switch http.statusCode {
         case 200..<300:
-            return try JSONDecoder().decode(T.self, from: data)
+            return data
         case 401:
             throw APIError.unauthorized
         default:
@@ -71,7 +99,74 @@ actor APIClient {
         }
     }
 
+    private func request<T: Decodable>(
+        path: String,
+        method: String = "GET",
+        token: String? = nil,
+        body: Data? = nil
+    ) async throws -> T {
+        let data = try await performRequest(path: path, method: method, token: token, body: body)
+
+        if T.self == EmptyResponse.self, data.isEmpty {
+            return EmptyResponse() as! T
+        }
+
+        return try decoder.decode(T.self, from: data)
+    }
+
+    private func request<Body: Encodable, T: Decodable>(
+        path: String,
+        method: String,
+        token: String,
+        body: Body
+    ) async throws -> T {
+        let data = try encoder.encode(body)
+        return try await request(path: path, method: method, token: token, body: data)
+    }
+
     func fetchMe(token: String) async throws -> User {
         try await request(path: "/me", token: token)
     }
+
+    func fetchPrompts(token: String) async throws -> [Prompt] {
+        try await request(path: "/prompts", token: token)
+    }
+
+    func createPrompt(request body: PromptCreateRequest, token: String) async throws -> Prompt {
+        try await request(path: "/prompts", method: "POST", token: token, body: body)
+    }
+
+    func updatePrompt(id: Int64, request body: PromptUpdateRequest, token: String) async throws -> Prompt {
+        try await request(path: "/prompts/\(id)", method: "PATCH", token: token, body: body)
+    }
+
+    func deletePrompt(id: Int64, token: String) async throws {
+        let _: EmptyResponse = try await request(path: "/prompts/\(id)", method: "DELETE", token: token)
+    }
+
+    func fetchTranscriptions(token: String) async throws -> [Transcription] {
+        try await request(path: "/transcriptions", token: token)
+    }
+
+    func fetchTranscription(id: Int64, token: String) async throws -> Transcription {
+        try await request(path: "/transcriptions/\(id)", token: token)
+    }
+
+    func createTranscription(request body: TranscriptionCreateRequest, token: String) async throws -> Transcription {
+        try await request(path: "/transcriptions", method: "POST", token: token, body: body)
+    }
 }
+
+private struct EmptyResponse: Decodable {}
+
+private let apiDateFormatter: ISO8601DateFormatter = {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime]
+    return formatter
+}()
+
+private let apiDateFormatterWithFractionalSeconds: ISO8601DateFormatter = {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return formatter
+}()

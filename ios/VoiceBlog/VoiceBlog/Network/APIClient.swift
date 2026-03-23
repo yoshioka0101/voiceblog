@@ -157,7 +157,9 @@ actor APIClient {
     }
 }
 
-private struct EmptyResponse: Decodable {}
+private struct EmptyResponse {}
+
+extension EmptyResponse: Decodable {}
 
 private let apiDateFormatter: ISO8601DateFormatter = {
     let formatter = ISO8601DateFormatter()

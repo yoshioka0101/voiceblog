@@ -2,7 +2,7 @@ import Foundation
 
 typealias SegmentPayload = [String: JSONValue]
 
-enum JSONValue: Codable, Sendable {
+enum JSONValue: Sendable {
     case string(String)
     case int(Int)
     case double(Double)
@@ -10,8 +10,10 @@ enum JSONValue: Codable, Sendable {
     case array([JSONValue])
     case object([String: JSONValue])
     case null
+}
 
-    init(from decoder: Decoder) throws {
+extension JSONValue: Codable {
+    nonisolated init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
 
         if container.decodeNil() {
@@ -46,7 +48,7 @@ enum JSONValue: Codable, Sendable {
         throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unsupported JSON value")
     }
 
-    func encode(to encoder: Encoder) throws {
+    nonisolated func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
 
         switch self {

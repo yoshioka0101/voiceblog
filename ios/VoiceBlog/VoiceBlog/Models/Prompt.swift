@@ -1,6 +1,6 @@
 import Foundation
 
-struct Prompt: Codable, Identifiable, Sendable {
+struct Prompt: Identifiable, Sendable {
     let id: Int64
     let userId: Int64?
     let name: String
@@ -14,7 +14,10 @@ struct Prompt: Codable, Identifiable, Sendable {
         userId == nil
     }
 
-    enum CodingKeys: String, CodingKey {
+}
+
+extension Prompt: Codable {
+    nonisolated enum CodingKeys: String, CodingKey {
         case id
         case userId = "user_id"
         case name
@@ -26,24 +29,28 @@ struct Prompt: Codable, Identifiable, Sendable {
     }
 }
 
-struct PromptCreateRequest: Codable, Sendable {
+struct PromptCreateRequest: Sendable {
     let name: String
     let body: String
     let isActive: Bool?
+}
 
-    enum CodingKeys: String, CodingKey {
+extension PromptCreateRequest: Codable {
+    nonisolated enum CodingKeys: String, CodingKey {
         case name
         case body
         case isActive = "is_active"
     }
 }
 
-struct PromptUpdateRequest: Codable, Sendable {
+struct PromptUpdateRequest: Sendable {
     let name: String?
     let body: String?
     let isActive: Bool?
+}
 
-    enum CodingKeys: String, CodingKey {
+extension PromptUpdateRequest: Codable {
+    nonisolated enum CodingKeys: String, CodingKey {
         case name
         case body
         case isActive = "is_active"

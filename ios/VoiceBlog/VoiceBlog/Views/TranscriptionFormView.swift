@@ -13,6 +13,17 @@ struct TranscriptionFormView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section("使い方") {
+                    Text("SpeechAnalyzer 本実装前の MVP として、文字起こし本文と `segments_json` を手動で確認しながら保存します。")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("保存内容") {
+                    LabeledContent("本文文字数", value: "\(fullText.count)")
+                    LabeledContent("segments_json", value: segmentsPreviewText)
+                }
+
                 Section("本文") {
                     TextEditor(text: $fullText)
                         .frame(minHeight: 180)
@@ -45,9 +56,11 @@ struct TranscriptionFormView: View {
                                 await submit()
                             }
                         }
+                        .disabled(isSaveDisabled)
                     }
                 }
             }
+            .navigationTitle("文字起こし作成")
             .alert("エラー", isPresented: isShowingError) {
                 Button("閉じる", role: .cancel) {
                     errorMessage = nil
@@ -75,6 +88,21 @@ struct TranscriptionFormView: View {
                 }
             }
         )
+    }
+
+    private var isSaveDisabled: Bool {
+        fullText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || parsedSegments == nil
+    }
+
+    private var parsedSegments: [SegmentPayload]? {
+        try? JSONCoding.decodeSegments(from: segmentsText)
+    }
+
+    private var segmentsPreviewText: String {
+        if let parsedSegments {
+            return "\(parsedSegments.count) 件"
+        }
+        return "JSON が不正です"
     }
 
     private func submit() async {

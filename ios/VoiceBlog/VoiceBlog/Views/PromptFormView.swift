@@ -23,6 +23,12 @@ struct PromptFormView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section("使い方") {
+                    Text("共通 prompt は編集できません。この画面では自分用 prompt を追加・更新します。")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
                 Section("基本情報") {
                     TextField("名前", text: $draft.name)
                     Toggle("有効", isOn: $draft.isActive)
@@ -31,6 +37,10 @@ struct PromptFormView: View {
                 Section("本文") {
                     TextEditor(text: $draft.body)
                         .frame(minHeight: 220)
+
+                    Text("\(draft.body.count) 文字")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
             .navigationTitle(title)
@@ -50,6 +60,7 @@ struct PromptFormView: View {
                                 await submit()
                             }
                         }
+                        .disabled(isSaveDisabled)
                     }
                 }
             }
@@ -72,6 +83,11 @@ struct PromptFormView: View {
                 }
             }
         )
+    }
+
+    private var isSaveDisabled: Bool {
+        draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || draft.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func submit() async {

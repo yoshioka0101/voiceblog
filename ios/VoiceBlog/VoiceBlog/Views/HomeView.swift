@@ -7,7 +7,6 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    overviewCard
                     promptWorkflowCard
                     transcriptionWorkflowCard
                     guidanceCard
@@ -28,34 +27,6 @@ struct HomeView: View {
                         auth.signOut()
                     }
                 }
-            }
-        }
-    }
-
-    private var overviewCard: some View {
-        AppSurface(accent: .teal) {
-            Text("書く前の準備をここで完了する")
-                .font(.title2.weight(.bold))
-
-            Text("文字起こしを先に保存し、使う prompt を整えてから AI 実行へ進む導線に寄せています。")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            if let user = auth.user {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        AppTag(title: user.authProvider, tint: .teal)
-                        if let email = user.email, !email.isEmpty {
-                            Text(email)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    Text(user.name ?? "ログイン中")
-                        .font(.headline)
-                }
-                .padding(.top, 4)
             }
         }
     }

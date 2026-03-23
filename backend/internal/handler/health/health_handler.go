@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/yoshioka0101/voiceblog/backend/internal/api"
 )
 
 func RegisterRoutes(r gin.IRoutes) {
@@ -11,5 +13,5 @@ func RegisterRoutes(r gin.IRoutes) {
 }
 
 func Health(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	c.JSON(http.StatusOK, api.HealthResponse{Status: "ok"})
 }

@@ -12,6 +12,7 @@ type Config struct {
 	LogLevel       slog.Level
 	DBDSN          string
 	GoogleClientID string
+	GeminiAPIKey   string
 }
 
 func Load() (Config, error) {
@@ -40,6 +41,7 @@ func Load() (Config, error) {
 		LogLevel:       logLevel,
 		DBDSN:          dbDSN,
 		GoogleClientID: googleClientID,
+		GeminiAPIKey:   getEnv("GEMINI_API_KEY", ""),
 	}, nil
 }
 

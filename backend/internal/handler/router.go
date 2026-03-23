@@ -7,9 +7,17 @@ import (
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler/health"
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler/me"
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler/middleware"
+	prompthandler "github.com/yoshioka0101/voiceblog/backend/internal/handler/prompt"
+	transcriptionhandler "github.com/yoshioka0101/voiceblog/backend/internal/handler/transcription"
 )
 
 func RegisterRoutes(r *gin.Engine, c *di.Container) {
 	health.RegisterRoutes(r)
-	me.RegisterRoutes(r, middleware.Auth(c.UseCases.Auth))
+	auth := middleware.Auth(c.UseCases.Auth)
+	me.RegisterRoutes(r, auth)
+
+	authGroup := r.Group("/")
+	authGroup.Use(auth)
+	prompthandler.RegisterProtectedRoutes(authGroup, c.UseCases.Prompt)
+	transcriptionhandler.RegisterProtectedRoutes(authGroup, c.UseCases.Transcription)
 }

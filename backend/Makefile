@@ -44,6 +44,7 @@ fmt:
 
 gen-api:
 	npx @redocly/cli@latest bundle openapi/openapi.yaml -o openapi/gen-openapi.yaml
+	go tool oapi-codegen -config openapi/oapi-codegen.yaml openapi/gen-openapi.yaml
 
 gen-db: ## bobgen-psql で DB モデルを生成
 	PSQL_DSN="$(DB_DSN)" go tool bobgen-psql

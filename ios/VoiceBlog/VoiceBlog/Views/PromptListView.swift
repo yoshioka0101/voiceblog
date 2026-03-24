@@ -35,14 +35,14 @@ struct PromptListView: View {
                         Label("プロンプトがまだありません", systemImage: "text.badge.plus")
                             .font(.headline)
 
-                        Text("共通 prompt はここに表示され、自分用 prompt は下のボタンからすぐ追加できます。")
+                        Text("共通プロンプトはここに表示され、自分用プロンプトは下のボタンからすぐ追加できます。")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                 } else {
                     if !systemPrompts.isEmpty {
                         promptSection(
-                            title: "共通 prompt",
+                            title: "共通プロンプト",
                             subtitle: "読み取り専用。AI 実行前の基準として使います。",
                             accent: .orange,
                             prompts: systemPrompts
@@ -51,8 +51,8 @@ struct PromptListView: View {
 
                     if !userPrompts.isEmpty {
                         promptSection(
-                            title: "自分の prompt",
-                            subtitle: "編集・削除できる自分専用の prompt です。",
+                            title: "自分のプロンプト",
+                            subtitle: "編集・削除できる自分専用のプロンプトです。",
                             accent: .blue,
                             prompts: userPrompts
                         ) { prompt in
@@ -132,7 +132,7 @@ struct PromptListView: View {
             Button {
                 showingCreateSheet = true
             } label: {
-                Label("自分の prompt を追加", systemImage: "plus")
+                Label("自分のプロンプトを追加", systemImage: "plus")
             }
             .buttonStyle(AppPrimaryButtonStyle(tint: .orange))
             .padding(.horizontal, 20)
@@ -162,10 +162,10 @@ struct PromptListView: View {
 
     private var summaryCard: some View {
         AppSurface(accent: .orange) {
-            Text("prompt を見直して書き方を揃える")
+            Text("プロンプトを見直して書き方を揃える")
                 .font(.title3.weight(.bold))
 
-            Text("共通 prompt は内容確認、自分の prompt は使い回し用のテンプレート管理に寄せています。")
+            Text("共通プロンプトは内容確認、自分のプロンプトはテンプレート管理に使えます。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
@@ -207,6 +207,7 @@ struct PromptListView: View {
         }
     }
 
+    @MainActor
     private func applyEntryPointIfNeeded() {
         guard !didApplyEntryPoint else {
             return
@@ -218,18 +219,20 @@ struct PromptListView: View {
         }
     }
 
+    @MainActor
     private func loadPrompts() async {
         isLoading = true
         defer { isLoading = false }
 
         do {
             let token = try await auth.fetchIDToken()
-            prompts = try await APIClient.shared.fetchPrompts(token: token)
+            prompts = try await APIClient.shared.getListPrompts(token: token)
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
+    @MainActor
     private func createPrompt(_ draft: PromptDraft) async throws {
         let token = try await auth.fetchIDToken()
         let created = try await APIClient.shared.createPrompt(
@@ -239,6 +242,7 @@ struct PromptListView: View {
         prompts.insert(created, at: 0)
     }
 
+    @MainActor
     private func updatePrompt(_ prompt: Prompt, draft: PromptDraft) async throws {
         let token = try await auth.fetchIDToken()
         let updated = try await APIClient.shared.updatePrompt(
@@ -252,6 +256,7 @@ struct PromptListView: View {
         }
     }
 
+    @MainActor
     private func deletePrompt(_ prompt: Prompt) async {
         do {
             let token = try await auth.fetchIDToken()

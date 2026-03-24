@@ -2,13 +2,14 @@ import SwiftUI
 
 struct HomeView: View {
     var auth: AuthManager
+    @State private var showingPromptSettings = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    promptWorkflowCard
-                    transcriptionWorkflowCard
+                    audioArticleWorkflowCard
+                    manualArticleWorkflowCard
                     guidanceCard
                 }
                 .padding(20)
@@ -23,64 +24,68 @@ struct HomeView: View {
             .navigationTitle("VoiceBlog")
             .toolbar {
                 ToolbarItem(placement: .automatic) {
-                    Button("サインアウト") {
-                        auth.signOut()
+                    Menu {
+                        Button("プロンプト設定") {
+                            showingPromptSettings = true
+                        }
+
+                        Divider()
+
+                        Button("ログアウト", role: .destructive) {
+                            auth.signOut()
+                        }
+                    } label: {
+                        Label("Profile", systemImage: "person.crop.circle")
                     }
                 }
             }
-        }
-    }
-
-    private var promptWorkflowCard: some View {
-        AppSurface(accent: .orange) {
-            Label("Prompt を整える", systemImage: "text.badge.plus")
-                .font(.title3.weight(.semibold))
-
-            Text("共通 prompt を読み、必要なら自分用 prompt を追加して使い分けます。")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            HStack(spacing: 12) {
-                NavigationLink {
-                    PromptListView(auth: auth, entryPoint: .create)
-                } label: {
-                    Label("新規作成", systemImage: "square.and.pencil")
-                }
-                .buttonStyle(AppPrimaryButtonStyle(tint: .orange))
-
-                NavigationLink {
-                    PromptListView(auth: auth)
-                } label: {
-                    Label("一覧を見る", systemImage: "list.bullet.rectangle")
-                }
-                .buttonStyle(AppSecondaryButtonStyle(tint: .orange))
+            .navigationDestination(isPresented: $showingPromptSettings) {
+                PromptListView(auth: auth)
             }
         }
     }
 
-    private var transcriptionWorkflowCard: some View {
+    private var audioArticleWorkflowCard: some View {
         AppSurface(accent: .teal) {
-            Label("文字起こしを保存する", systemImage: "waveform.badge.magnifyingglass")
+            Label("音声から記事生成", systemImage: "waveform.badge.magnifyingglass")
                 .font(.title3.weight(.semibold))
 
-            Text("SpeechAnalyzer 本実装前でも、下書き保存から一覧・詳細の流れを先に確認できます。")
+            Text("録音して文字起こしを作り、AI で記事の下書きを生成します。")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            NavigationLink {
+                SpeechCaptureView(auth: auth)
+            } label: {
+                Label("録音を始める", systemImage: "mic.fill")
+            }
+            .buttonStyle(AppPrimaryButtonStyle(tint: .teal))
+        }
+    }
+
+    private var manualArticleWorkflowCard: some View {
+        AppSurface(accent: .indigo) {
+            Label("手動で記事を生成", systemImage: "square.and.pencil")
+                .font(.title3.weight(.semibold))
+
+            Text("タイトルと本文を直接書いて保存できます。AI 生成記事と同じ一覧であとから編集できます。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 12) {
                 NavigationLink {
-                    TranscriptionListView(auth: auth, entryPoint: .create)
+                    ArticleListView(auth: auth, entryPoint: .create)
                 } label: {
-                    Label("すぐ保存", systemImage: "square.and.arrow.down")
+                    Label("手動作成", systemImage: "square.and.pencil")
                 }
-                .buttonStyle(AppPrimaryButtonStyle(tint: .teal))
+                .buttonStyle(AppPrimaryButtonStyle(tint: .indigo))
 
                 NavigationLink {
-                    TranscriptionListView(auth: auth)
+                    ArticleListView(auth: auth)
                 } label: {
-                    Label("一覧を見る", systemImage: "doc.text.magnifyingglass")
+                    Label("記事一覧", systemImage: "text.document")
                 }
-                .buttonStyle(AppSecondaryButtonStyle(tint: .teal))
+                .buttonStyle(AppSecondaryButtonStyle(tint: .indigo))
             }
         }
     }
@@ -91,9 +96,11 @@ struct HomeView: View {
                 .font(.headline)
 
             VStack(alignment: .leading, spacing: 10) {
-                Text("1. 共通 prompt の内容を確認する")
-                Text("2. 必要なら自分用 prompt を追加する")
-                Text("3. 文字起こしを保存して、一覧と詳細で内容を確認する")
+                Text("1. プロンプト設定で記事の生成方法を確認する")
+                Text("2. 録音を始めて話し終えたら停止する")
+                Text("3. 文字起こし結果を確認して保存する")
+                Text("4. AI で記事の下書きを生成する")
+                Text("5. プレビューを確認して記事として保存する")
             }
             .font(.subheadline)
             .foregroundStyle(.secondary)

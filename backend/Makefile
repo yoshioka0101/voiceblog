@@ -8,7 +8,7 @@ ATLAS_SCHEMA_FILE := file://migrations/schema.hcl
 ATLAS_DEV_URL ?= docker://postgres/16/dev?search_path=public
 .DEFAULT_GOAL := help
 
-.PHONY: help dev server lint test fmt gen-api gen-db redoc db-up db-down migrate-diff migrate-apply migrate-status
+.PHONY: help dev server lint test fmt gen-api gen-db redoc db-up db-down migrate-diff migrate-apply migrate-status seed
 
 help:
 	@printf "使い方: make <ターゲット>\n\n"
@@ -26,6 +26,7 @@ help:
 	@printf "  migrate-diff     Atlas マイグレーション差分を生成\n"
 	@printf "  migrate-apply    Atlas マイグレーションを適用\n"
 	@printf "  migrate-status   Atlas マイグレーションの状態を確認\n"
+	@printf "  seed             初期データを投入\n"
 
 dev:
 	go run ./cmd/api
@@ -66,3 +67,6 @@ migrate-apply:
 
 migrate-status:
 	cd .. && atlas migrate status --dir "$(ATLAS_MIGRATION_DIR)" --url "$(DB_DSN)"
+
+seed:
+	go run ./cmd/seed

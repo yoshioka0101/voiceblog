@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"net/http"
 	"strings"
 
 	"github.com/yoshioka0101/voiceblog/backend/internal/apperr"
@@ -10,8 +9,8 @@ import (
 )
 
 var (
-	ErrNotFound  = apperr.New(http.StatusNotFound, "prompt not found")
-	ErrForbidden = apperr.New(http.StatusForbidden, "forbidden")
+	ErrNotFound  = apperr.NotFound("prompt")
+	ErrForbidden = apperr.ErrForbidden
 )
 
 type CreatePromptInput struct {
@@ -45,7 +44,7 @@ func (uc *UseCase) CreatePrompt(ctx context.Context, input CreatePromptInput) (*
 	name := strings.TrimSpace(input.Name)
 	body := strings.TrimSpace(input.Body)
 	if name == "" || body == "" {
-		return nil, apperr.New(http.StatusBadRequest, "name and body are required")
+		return nil, apperr.BadRequest( "name and body are required")
 	}
 
 	isActive := true
@@ -64,7 +63,7 @@ func (uc *UseCase) CreatePrompt(ctx context.Context, input CreatePromptInput) (*
 
 func (uc *UseCase) UpdatePrompt(ctx context.Context, input UpdatePromptInput) (*entity.Prompt, error) {
 	if input.Name == nil && input.Body == nil && input.IsActive == nil {
-		return nil, apperr.New(http.StatusBadRequest, "at least one field is required")
+		return nil, apperr.BadRequest( "at least one field is required")
 	}
 
 	prompt, err := uc.repo.FindByID(ctx, input.PromptID)
@@ -78,7 +77,7 @@ func (uc *UseCase) UpdatePrompt(ctx context.Context, input UpdatePromptInput) (*
 	if input.Name != nil {
 		trimmedName := strings.TrimSpace(*input.Name)
 		if trimmedName == "" {
-			return nil, apperr.New(http.StatusBadRequest, "name must not be blank")
+			return nil, apperr.BadRequest( "name must not be blank")
 		}
 		prompt.Name = trimmedName
 	}
@@ -86,7 +85,7 @@ func (uc *UseCase) UpdatePrompt(ctx context.Context, input UpdatePromptInput) (*
 	if input.Body != nil {
 		trimmedBody := strings.TrimSpace(*input.Body)
 		if trimmedBody == "" {
-			return nil, apperr.New(http.StatusBadRequest, "body must not be blank")
+			return nil, apperr.BadRequest( "body must not be blank")
 		}
 		prompt.Body = trimmedBody
 	}

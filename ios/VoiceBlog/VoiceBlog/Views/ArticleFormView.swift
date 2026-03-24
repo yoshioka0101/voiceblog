@@ -1,19 +1,19 @@
 import SwiftUI
 
-struct PromptFormView: View {
+struct ArticleFormView: View {
     @Environment(\.dismiss) private var dismiss
 
     let title: String
-    let onSubmit: @MainActor (PromptDraft) async throws -> Void
+    let onSubmit: @MainActor (ArticleDraft) async throws -> Void
 
-    @State private var draft: PromptDraft
+    @State private var draft: ArticleDraft
     @State private var isSaving = false
     @State private var errorMessage: String?
 
     init(
         title: String,
-        initialDraft: PromptDraft = PromptDraft(),
-        onSubmit: @escaping @MainActor (PromptDraft) async throws -> Void
+        initialDraft: ArticleDraft = ArticleDraft(),
+        onSubmit: @escaping @MainActor (ArticleDraft) async throws -> Void
     ) {
         self.title = title
         self.onSubmit = onSubmit
@@ -24,21 +24,23 @@ struct PromptFormView: View {
         NavigationStack {
             Form {
                 Section("使い方") {
-                    Text("共通 prompt は編集できません。この画面では自分用 prompt を追加・更新します。")
+                    Text("AI が生成した記事の微調整にも、手動の新規作成にも同じ画面を使います。")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
 
                 Section("基本情報") {
-                    TextField("名前", text: $draft.name)
-                    Toggle("有効", isOn: $draft.isActive)
+                    TextField("タイトル", text: $draft.title)
+                    Text("\(draft.title.count) 文字")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("本文") {
-                    TextEditor(text: $draft.body)
-                        .frame(minHeight: 220)
+                    TextEditor(text: $draft.content)
+                        .frame(minHeight: 260)
 
-                    Text("\(draft.body.count) 文字")
+                    Text("\(draft.content.count) 文字")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -86,8 +88,8 @@ struct PromptFormView: View {
     }
 
     private var isSaveDisabled: Bool {
-        draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            || draft.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || draft.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     @MainActor

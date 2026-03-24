@@ -123,6 +123,178 @@ paths:
           description: Forbidden
         '404':
           description: Not Found
+  /prompt-run-jobs:
+    post:
+      summary: Create and execute prompt run job
+      operationId: createPromptRunJob
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/prompt_run_job_create_request'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/prompt_run_job'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+  /prompt-run-jobs/{id}:
+    get:
+      summary: Get current user's prompt run job
+      operationId: getPromptRunJob
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/prompt_run_job'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+  /articles:
+    get:
+      summary: List current user's articles
+      operationId: listArticles
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/article'
+        '401':
+          description: Unauthorized
+    post:
+      summary: Create article manually
+      operationId: createArticle
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/article_create_request'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/article'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+  /articles/{id}:
+    get:
+      summary: Get current user's article
+      operationId: getArticle
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/article'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+    patch:
+      summary: Update current user's article
+      operationId: updateArticle
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/article_update_request'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/article'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+    delete:
+      summary: Soft delete current user's article
+      operationId: deleteArticle
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
   /transcriptions:
     get:
       summary: List current user's transcriptions
@@ -191,12 +363,24 @@ paths:
           description: Not Found
 components:
   schemas:
+    ArticleResponse:
+      $ref: '#/components/schemas/article'
+    ArticlesResponse:
+      $ref: '#/components/schemas/article_list_response'
+    CreateArticleRequest:
+      $ref: '#/components/schemas/article_create_request'
+    UpdateArticleRequest:
+      $ref: '#/components/schemas/article_update_request'
     HealthResponse:
       $ref: '#/components/schemas/health'
     PromptResponse:
       $ref: '#/components/schemas/prompt'
     PromptsResponse:
       $ref: '#/components/schemas/prompt_list_response'
+    PromptRunJobResponse:
+      $ref: '#/components/schemas/prompt_run_job'
+    CreatePromptRunJobRequest:
+      $ref: '#/components/schemas/prompt_run_job_create_request'
     CreatePromptRequest:
       $ref: '#/components/schemas/prompt_create_request'
     UpdatePromptRequest:
@@ -285,6 +469,112 @@ components:
           type: string
         is_active:
           type: boolean
+    prompt_run_job_create_request:
+      type: object
+      properties:
+        transcription_id:
+          type: integer
+          format: int64
+        prompt_id:
+          type: integer
+          format: int64
+      required:
+        - transcription_id
+        - prompt_id
+    prompt_run_job:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        transcription_id:
+          type: integer
+          format: int64
+        prompt_id:
+          type: integer
+          format: int64
+        status:
+          type: string
+        attempt_count:
+          type: integer
+        next_run_at:
+          type: string
+          format: date-time
+        error_message:
+          type: string
+          nullable: true
+        generated_title:
+          type: string
+          nullable: true
+        generated_content:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - transcription_id
+        - prompt_id
+        - status
+        - attempt_count
+        - next_run_at
+        - created_at
+    article:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        user_id:
+          type: integer
+          format: int64
+        prompt_run_job_id:
+          type: integer
+          format: int64
+          nullable: true
+        title:
+          type: string
+        content:
+          type: string
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - user_id
+        - title
+        - content
+        - created_at
+        - updated_at
+    article_create_request:
+      type: object
+      properties:
+        prompt_run_job_id:
+          type: integer
+          format: int64
+          nullable: true
+        title:
+          type: string
+        content:
+          type: string
+      required:
+        - title
+        - content
+    article_update_request:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
     transcription:
       type: object
       properties:
@@ -327,6 +617,10 @@ components:
       required:
         - full_text
         - segments_json
+    article_list_response:
+      type: array
+      items:
+        $ref: '#/components/schemas/article'
     prompt_list_response:
       type: array
       items:

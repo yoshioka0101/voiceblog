@@ -11,8 +11,20 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// ArticleResponse defines model for ArticleResponse.
+type ArticleResponse = Article
+
+// ArticlesResponse defines model for ArticlesResponse.
+type ArticlesResponse = ArticleListResponse
+
+// CreateArticleRequest defines model for CreateArticleRequest.
+type CreateArticleRequest = ArticleCreateRequest
+
 // CreatePromptRequest defines model for CreatePromptRequest.
 type CreatePromptRequest = PromptCreateRequest
+
+// CreatePromptRunJobRequest defines model for CreatePromptRunJobRequest.
+type CreatePromptRunJobRequest = PromptRunJobCreateRequest
 
 // CreateTranscriptionRequest defines model for CreateTranscriptionRequest.
 type CreateTranscriptionRequest = TranscriptionCreateRequest
@@ -23,6 +35,9 @@ type HealthResponse = Health
 // PromptResponse defines model for PromptResponse.
 type PromptResponse = Prompt
 
+// PromptRunJobResponse defines model for PromptRunJobResponse.
+type PromptRunJobResponse = PromptRunJob
+
 // PromptsResponse defines model for PromptsResponse.
 type PromptsResponse = PromptListResponse
 
@@ -32,11 +47,42 @@ type TranscriptionResponse = Transcription
 // TranscriptionsResponse defines model for TranscriptionsResponse.
 type TranscriptionsResponse = TranscriptionListResponse
 
+// UpdateArticleRequest defines model for UpdateArticleRequest.
+type UpdateArticleRequest = ArticleUpdateRequest
+
 // UpdatePromptRequest defines model for UpdatePromptRequest.
 type UpdatePromptRequest = PromptUpdateRequest
 
 // UserResponse defines model for UserResponse.
 type UserResponse = User
+
+// Article defines model for article.
+type Article struct {
+	Content        string     `json:"content"`
+	CreatedAt      time.Time  `json:"created_at"`
+	DeletedAt      *time.Time `json:"deleted_at,omitempty"`
+	Id             int64      `json:"id"`
+	PromptRunJobId *int64     `json:"prompt_run_job_id,omitempty"`
+	Title          string     `json:"title"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+	UserId         int64      `json:"user_id"`
+}
+
+// ArticleCreateRequest defines model for article_create_request.
+type ArticleCreateRequest struct {
+	Content        string `json:"content"`
+	PromptRunJobId *int64 `json:"prompt_run_job_id,omitempty"`
+	Title          string `json:"title"`
+}
+
+// ArticleListResponse defines model for article_list_response.
+type ArticleListResponse = []Article
+
+// ArticleUpdateRequest defines model for article_update_request.
+type ArticleUpdateRequest struct {
+	Content *string `json:"content,omitempty"`
+	Title   *string `json:"title,omitempty"`
+}
 
 // Health defines model for health.
 type Health struct {
@@ -64,6 +110,26 @@ type PromptCreateRequest struct {
 
 // PromptListResponse defines model for prompt_list_response.
 type PromptListResponse = []Prompt
+
+// PromptRunJob defines model for prompt_run_job.
+type PromptRunJob struct {
+	AttemptCount     int       `json:"attempt_count"`
+	CreatedAt        time.Time `json:"created_at"`
+	ErrorMessage     *string   `json:"error_message,omitempty"`
+	GeneratedContent *string   `json:"generated_content,omitempty"`
+	GeneratedTitle   *string   `json:"generated_title,omitempty"`
+	Id               int64     `json:"id"`
+	NextRunAt        time.Time `json:"next_run_at"`
+	PromptId         int64     `json:"prompt_id"`
+	Status           string    `json:"status"`
+	TranscriptionId  int64     `json:"transcription_id"`
+}
+
+// PromptRunJobCreateRequest defines model for prompt_run_job_create_request.
+type PromptRunJobCreateRequest struct {
+	PromptId        int64 `json:"prompt_id"`
+	TranscriptionId int64 `json:"transcription_id"`
+}
 
 // PromptUpdateRequest defines model for prompt_update_request.
 type PromptUpdateRequest struct {
@@ -98,6 +164,15 @@ type User struct {
 	Id           int64   `json:"id"`
 	Name         *string `json:"name,omitempty"`
 }
+
+// CreateArticleJSONRequestBody defines body for CreateArticle for application/json ContentType.
+type CreateArticleJSONRequestBody = ArticleCreateRequest
+
+// UpdateArticleJSONRequestBody defines body for UpdateArticle for application/json ContentType.
+type UpdateArticleJSONRequestBody = ArticleUpdateRequest
+
+// CreatePromptRunJobJSONRequestBody defines body for CreatePromptRunJob for application/json ContentType.
+type CreatePromptRunJobJSONRequestBody = PromptRunJobCreateRequest
 
 // CreatePromptJSONRequestBody defines body for CreatePrompt for application/json ContentType.
 type CreatePromptJSONRequestBody = PromptCreateRequest

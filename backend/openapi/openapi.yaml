@@ -11,18 +11,38 @@ paths:
     $ref: ./paths/prompts.yaml
   /prompts/{id}:
     $ref: ./paths/prompt_by_id.yaml
+  /prompt-run-jobs:
+    $ref: ./paths/prompt_run_jobs.yaml
+  /prompt-run-jobs/{id}:
+    $ref: ./paths/prompt_run_job_by_id.yaml
+  /articles:
+    $ref: ./paths/articles.yaml
+  /articles/{id}:
+    $ref: ./paths/article_by_id.yaml
   /transcriptions:
     $ref: ./paths/transcriptions.yaml
   /transcriptions/{id}:
     $ref: ./paths/transcription_by_id.yaml
 components:
   schemas:
+    ArticleResponse:
+      $ref: ./components/schemas/article.yaml
+    ArticlesResponse:
+      $ref: ./components/schemas/article_list_response.yaml
+    CreateArticleRequest:
+      $ref: ./components/schemas/article_create_request.yaml
+    UpdateArticleRequest:
+      $ref: ./components/schemas/article_update_request.yaml
     HealthResponse:
       $ref: ./components/schemas/health.yaml
     PromptResponse:
       $ref: ./components/schemas/prompt.yaml
     PromptsResponse:
       $ref: ./components/schemas/prompt_list_response.yaml
+    PromptRunJobResponse:
+      $ref: ./components/schemas/prompt_run_job.yaml
+    CreatePromptRunJobRequest:
+      $ref: ./components/schemas/prompt_run_job_create_request.yaml
     CreatePromptRequest:
       $ref: ./components/schemas/prompt_create_request.yaml
     UpdatePromptRequest:

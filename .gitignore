@@ -55,4 +55,5 @@ ios/**/*.dSYM.zip
 ios/**/*.dSYM
 ios/Pods/
 ios/.build/
+ios/.build-ios/
 ios/VoiceBlog/Config/LocalSecrets.xcconfig

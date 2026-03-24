@@ -49,6 +49,7 @@ type UsersQuery = *psql.ViewQuery[*User, UserSlice]
 
 // userR is where relationships are stored.
 type userR struct {
+	Articles       ArticleSlice       // articles.articles_user_id_fkey
 	Prompts        PromptSlice        // prompts.prompts_user_id_fkey
 	Transcriptions TranscriptionSlice // transcriptions.transcriptions_user_id_fkey
 }
@@ -487,6 +488,30 @@ func (o UserSlice) ReloadAll(ctx context.Context, exec bob.Executor) error {
 	return nil
 }
 
+// Articles starts a query for related objects on articles
+func (o *User) Articles(mods ...bob.Mod[*dialect.SelectQuery]) ArticlesQuery {
+	return Articles.Query(append(mods,
+		sm.Where(Articles.Columns.UserID.EQ(psql.Arg(o.ID))),
+	)...)
+}
+
+func (os UserSlice) Articles(mods ...bob.Mod[*dialect.SelectQuery]) ArticlesQuery {
+	pkID := make(pgtypes.Array[int64], 0, len(os))
+	for _, o := range os {
+		if o == nil {
+			continue
+		}
+		pkID = append(pkID, o.ID)
+	}
+	PKArgExpr := psql.Select(sm.Columns(
+		psql.F("unnest", psql.Cast(psql.Arg(pkID), "bigint[]")),
+	))
+
+	return Articles.Query(append(mods,
+		sm.Where(psql.Group(Articles.Columns.UserID).OP("IN", PKArgExpr)),
+	)...)
+}
+
 // Prompts starts a query for related objects on prompts
 func (o *User) Prompts(mods ...bob.Mod[*dialect.SelectQuery]) PromptsQuery {
 	return Prompts.Query(append(mods,
@@ -533,6 +558,74 @@ func (os UserSlice) Transcriptions(mods ...bob.Mod[*dialect.SelectQuery]) Transc
 	return Transcriptions.Query(append(mods,
 		sm.Where(psql.Group(Transcriptions.Columns.UserID).OP("IN", PKArgExpr)),
 	)...)
+}
+
+func insertUserArticles0(ctx context.Context, exec bob.Executor, articles1 []*ArticleSetter, user0 *User) (ArticleSlice, error) {
+	for i := range articles1 {
+		articles1[i].UserID = omit.From(user0.ID)
+	}
+
+	ret, err := Articles.Insert(bob.ToMods(articles1...)).All(ctx, exec)
+	if err != nil {
+		return ret, fmt.Errorf("insertUserArticles0: %w", err)
+	}
+
+	return ret, nil
+}
+
+func attachUserArticles0(ctx context.Context, exec bob.Executor, count int, articles1 ArticleSlice, user0 *User) (ArticleSlice, error) {
+	setter := &ArticleSetter{
+		UserID: omit.From(user0.ID),
+	}
+
+	err := articles1.UpdateAll(ctx, exec, *setter)
+	if err != nil {
+		return nil, fmt.Errorf("attachUserArticles0: %w", err)
+	}
+
+	return articles1, nil
+}
+
+func (user0 *User) InsertArticles(ctx context.Context, exec bob.Executor, related ...*ArticleSetter) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+
+	articles1, err := insertUserArticles0(ctx, exec, related, user0)
+	if err != nil {
+		return err
+	}
+
+	user0.R.Articles = append(user0.R.Articles, articles1...)
+
+	for _, rel := range articles1 {
+		rel.R.User = user0
+	}
+	return nil
+}
+
+func (user0 *User) AttachArticles(ctx context.Context, exec bob.Executor, related ...*Article) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	articles1 := ArticleSlice(related)
+
+	_, err = attachUserArticles0(ctx, exec, len(related), articles1, user0)
+	if err != nil {
+		return err
+	}
+
+	user0.R.Articles = append(user0.R.Articles, articles1...)
+
+	for _, rel := range related {
+		rel.R.User = user0
+	}
+
+	return nil
 }
 
 func insertUserPrompts0(ctx context.Context, exec bob.Executor, prompts1 []*PromptSetter, user0 *User) (PromptSlice, error) {
@@ -703,6 +796,20 @@ func (o *User) Preload(name string, retrieved any) error {
 	}
 
 	switch name {
+	case "Articles":
+		rels, ok := retrieved.(ArticleSlice)
+		if !ok {
+			return fmt.Errorf("user cannot load %T as %q", retrieved, name)
+		}
+
+		o.R.Articles = rels
+
+		for _, rel := range rels {
+			if rel != nil {
+				rel.R.User = o
+			}
+		}
+		return nil
 	case "Prompts":
 		rels, ok := retrieved.(PromptSlice)
 		if !ok {
@@ -743,11 +850,15 @@ func buildUserPreloader() userPreloader {
 }
 
 type userThenLoader[Q orm.Loadable] struct {
+	Articles       func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
 	Prompts        func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
 	Transcriptions func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
 }
 
 func buildUserThenLoader[Q orm.Loadable]() userThenLoader[Q] {
+	type ArticlesLoadInterface interface {
+		LoadArticles(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
+	}
 	type PromptsLoadInterface interface {
 		LoadPrompts(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
 	}
@@ -756,6 +867,12 @@ func buildUserThenLoader[Q orm.Loadable]() userThenLoader[Q] {
 	}
 
 	return userThenLoader[Q]{
+		Articles: thenLoadBuilder[Q](
+			"Articles",
+			func(ctx context.Context, exec bob.Executor, retrieved ArticlesLoadInterface, mods ...bob.Mod[*dialect.SelectQuery]) error {
+				return retrieved.LoadArticles(ctx, exec, mods...)
+			},
+		),
 		Prompts: thenLoadBuilder[Q](
 			"Prompts",
 			func(ctx context.Context, exec bob.Executor, retrieved PromptsLoadInterface, mods ...bob.Mod[*dialect.SelectQuery]) error {
@@ -769,6 +886,67 @@ func buildUserThenLoader[Q orm.Loadable]() userThenLoader[Q] {
 			},
 		),
 	}
+}
+
+// LoadArticles loads the user's Articles into the .R struct
+func (o *User) LoadArticles(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
+	if o == nil {
+		return nil
+	}
+
+	// Reset the relationship
+	o.R.Articles = nil
+
+	related, err := o.Articles(mods...).All(ctx, exec)
+	if err != nil {
+		return err
+	}
+
+	for _, rel := range related {
+		rel.R.User = o
+	}
+
+	o.R.Articles = related
+	return nil
+}
+
+// LoadArticles loads the user's Articles into the .R struct
+func (os UserSlice) LoadArticles(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
+	if len(os) == 0 {
+		return nil
+	}
+
+	articles, err := os.Articles(mods...).All(ctx, exec)
+	if err != nil {
+		return err
+	}
+
+	for _, o := range os {
+		if o == nil {
+			continue
+		}
+
+		o.R.Articles = nil
+	}
+
+	for _, o := range os {
+		if o == nil {
+			continue
+		}
+
+		for _, rel := range articles {
+
+			if !(o.ID == rel.UserID) {
+				continue
+			}
+
+			rel.R.User = o
+
+			o.R.Articles = append(o.R.Articles, rel)
+		}
+	}
+
+	return nil
 }
 
 // LoadPrompts loads the user's Prompts into the .R struct
@@ -898,6 +1076,7 @@ func (os UserSlice) LoadTranscriptions(ctx context.Context, exec bob.Executor, m
 
 type userJoins[Q dialect.Joinable] struct {
 	typ            string
+	Articles       modAs[Q, articleColumns]
 	Prompts        modAs[Q, promptColumns]
 	Transcriptions modAs[Q, transcriptionColumns]
 }
@@ -909,6 +1088,20 @@ func (j userJoins[Q]) aliasedAs(alias string) userJoins[Q] {
 func buildUserJoins[Q dialect.Joinable](cols userColumns, typ string) userJoins[Q] {
 	return userJoins[Q]{
 		typ: typ,
+		Articles: modAs[Q, articleColumns]{
+			c: Articles.Columns,
+			f: func(to articleColumns) bob.Mod[Q] {
+				mods := make(mods.QueryMods[Q], 0, 1)
+
+				{
+					mods = append(mods, dialect.Join[Q](typ, Articles.Name().As(to.Alias())).On(
+						to.UserID.EQ(cols.ID),
+					))
+				}
+
+				return mods
+			},
+		},
 		Prompts: modAs[Q, promptColumns]{
 			c: Prompts.Columns,
 			f: func(to promptColumns) bob.Mod[Q] {

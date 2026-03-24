@@ -17,6 +17,8 @@ import (
 var Preload = getPreloaders()
 
 type preloaders struct {
+	Article       articlePreloader
+	PromptRunJob  promptRunJobPreloader
 	Prompt        promptPreloader
 	Transcription transcriptionPreloader
 	User          userPreloader
@@ -24,6 +26,8 @@ type preloaders struct {
 
 func getPreloaders() preloaders {
 	return preloaders{
+		Article:       buildArticlePreloader(),
+		PromptRunJob:  buildPromptRunJobPreloader(),
 		Prompt:        buildPromptPreloader(),
 		Transcription: buildTranscriptionPreloader(),
 		User:          buildUserPreloader(),
@@ -37,6 +41,8 @@ var (
 )
 
 type thenLoaders[Q orm.Loadable] struct {
+	Article       articleThenLoader[Q]
+	PromptRunJob  promptRunJobThenLoader[Q]
 	Prompt        promptThenLoader[Q]
 	Transcription transcriptionThenLoader[Q]
 	User          userThenLoader[Q]
@@ -44,6 +50,8 @@ type thenLoaders[Q orm.Loadable] struct {
 
 func getThenLoaders[Q orm.Loadable]() thenLoaders[Q] {
 	return thenLoaders[Q]{
+		Article:       buildArticleThenLoader[Q](),
+		PromptRunJob:  buildPromptRunJobThenLoader[Q](),
 		Prompt:        buildPromptThenLoader[Q](),
 		Transcription: buildTranscriptionThenLoader[Q](),
 		User:          buildUserThenLoader[Q](),

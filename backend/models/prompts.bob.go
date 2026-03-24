@@ -50,7 +50,8 @@ type PromptsQuery = *psql.ViewQuery[*Prompt, PromptSlice]
 
 // promptR is where relationships are stored.
 type promptR struct {
-	User *User // prompts.prompts_user_id_fkey
+	PromptRunJobs PromptRunJobSlice // prompt_run_jobs.prompt_run_jobs_prompt_id_fkey
+	User          *User             // prompts.prompts_user_id_fkey
 }
 
 func buildPromptColumns(alias string) promptColumns {
@@ -509,6 +510,30 @@ func (o PromptSlice) ReloadAll(ctx context.Context, exec bob.Executor) error {
 	return nil
 }
 
+// PromptRunJobs starts a query for related objects on prompt_run_jobs
+func (o *Prompt) PromptRunJobs(mods ...bob.Mod[*dialect.SelectQuery]) PromptRunJobsQuery {
+	return PromptRunJobs.Query(append(mods,
+		sm.Where(PromptRunJobs.Columns.PromptID.EQ(psql.Arg(o.ID))),
+	)...)
+}
+
+func (os PromptSlice) PromptRunJobs(mods ...bob.Mod[*dialect.SelectQuery]) PromptRunJobsQuery {
+	pkID := make(pgtypes.Array[int64], 0, len(os))
+	for _, o := range os {
+		if o == nil {
+			continue
+		}
+		pkID = append(pkID, o.ID)
+	}
+	PKArgExpr := psql.Select(sm.Columns(
+		psql.F("unnest", psql.Cast(psql.Arg(pkID), "bigint[]")),
+	))
+
+	return PromptRunJobs.Query(append(mods,
+		sm.Where(psql.Group(PromptRunJobs.Columns.PromptID).OP("IN", PKArgExpr)),
+	)...)
+}
+
 // User starts a query for related objects on users
 func (o *Prompt) User(mods ...bob.Mod[*dialect.SelectQuery]) UsersQuery {
 	return Users.Query(append(mods,
@@ -531,6 +556,74 @@ func (os PromptSlice) User(mods ...bob.Mod[*dialect.SelectQuery]) UsersQuery {
 	return Users.Query(append(mods,
 		sm.Where(psql.Group(Users.Columns.ID).OP("IN", PKArgExpr)),
 	)...)
+}
+
+func insertPromptPromptRunJobs0(ctx context.Context, exec bob.Executor, promptRunJobs1 []*PromptRunJobSetter, prompt0 *Prompt) (PromptRunJobSlice, error) {
+	for i := range promptRunJobs1 {
+		promptRunJobs1[i].PromptID = omit.From(prompt0.ID)
+	}
+
+	ret, err := PromptRunJobs.Insert(bob.ToMods(promptRunJobs1...)).All(ctx, exec)
+	if err != nil {
+		return ret, fmt.Errorf("insertPromptPromptRunJobs0: %w", err)
+	}
+
+	return ret, nil
+}
+
+func attachPromptPromptRunJobs0(ctx context.Context, exec bob.Executor, count int, promptRunJobs1 PromptRunJobSlice, prompt0 *Prompt) (PromptRunJobSlice, error) {
+	setter := &PromptRunJobSetter{
+		PromptID: omit.From(prompt0.ID),
+	}
+
+	err := promptRunJobs1.UpdateAll(ctx, exec, *setter)
+	if err != nil {
+		return nil, fmt.Errorf("attachPromptPromptRunJobs0: %w", err)
+	}
+
+	return promptRunJobs1, nil
+}
+
+func (prompt0 *Prompt) InsertPromptRunJobs(ctx context.Context, exec bob.Executor, related ...*PromptRunJobSetter) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+
+	promptRunJobs1, err := insertPromptPromptRunJobs0(ctx, exec, related, prompt0)
+	if err != nil {
+		return err
+	}
+
+	prompt0.R.PromptRunJobs = append(prompt0.R.PromptRunJobs, promptRunJobs1...)
+
+	for _, rel := range promptRunJobs1 {
+		rel.R.Prompt = prompt0
+	}
+	return nil
+}
+
+func (prompt0 *Prompt) AttachPromptRunJobs(ctx context.Context, exec bob.Executor, related ...*PromptRunJob) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	promptRunJobs1 := PromptRunJobSlice(related)
+
+	_, err = attachPromptPromptRunJobs0(ctx, exec, len(related), promptRunJobs1, prompt0)
+	if err != nil {
+		return err
+	}
+
+	prompt0.R.PromptRunJobs = append(prompt0.R.PromptRunJobs, promptRunJobs1...)
+
+	for _, rel := range related {
+		rel.R.Prompt = prompt0
+	}
+
+	return nil
 }
 
 func attachPromptUser0(ctx context.Context, exec bob.Executor, count int, prompt0 *Prompt, user1 *User) (*Prompt, error) {
@@ -615,6 +708,20 @@ func (o *Prompt) Preload(name string, retrieved any) error {
 	}
 
 	switch name {
+	case "PromptRunJobs":
+		rels, ok := retrieved.(PromptRunJobSlice)
+		if !ok {
+			return fmt.Errorf("prompt cannot load %T as %q", retrieved, name)
+		}
+
+		o.R.PromptRunJobs = rels
+
+		for _, rel := range rels {
+			if rel != nil {
+				rel.R.Prompt = o
+			}
+		}
+		return nil
 	case "User":
 		rel, ok := retrieved.(*User)
 		if !ok {
@@ -655,15 +762,25 @@ func buildPromptPreloader() promptPreloader {
 }
 
 type promptThenLoader[Q orm.Loadable] struct {
-	User func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
+	PromptRunJobs func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
+	User          func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
 }
 
 func buildPromptThenLoader[Q orm.Loadable]() promptThenLoader[Q] {
+	type PromptRunJobsLoadInterface interface {
+		LoadPromptRunJobs(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
+	}
 	type UserLoadInterface interface {
 		LoadUser(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
 	}
 
 	return promptThenLoader[Q]{
+		PromptRunJobs: thenLoadBuilder[Q](
+			"PromptRunJobs",
+			func(ctx context.Context, exec bob.Executor, retrieved PromptRunJobsLoadInterface, mods ...bob.Mod[*dialect.SelectQuery]) error {
+				return retrieved.LoadPromptRunJobs(ctx, exec, mods...)
+			},
+		),
 		User: thenLoadBuilder[Q](
 			"User",
 			func(ctx context.Context, exec bob.Executor, retrieved UserLoadInterface, mods ...bob.Mod[*dialect.SelectQuery]) error {
@@ -671,6 +788,67 @@ func buildPromptThenLoader[Q orm.Loadable]() promptThenLoader[Q] {
 			},
 		),
 	}
+}
+
+// LoadPromptRunJobs loads the prompt's PromptRunJobs into the .R struct
+func (o *Prompt) LoadPromptRunJobs(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
+	if o == nil {
+		return nil
+	}
+
+	// Reset the relationship
+	o.R.PromptRunJobs = nil
+
+	related, err := o.PromptRunJobs(mods...).All(ctx, exec)
+	if err != nil {
+		return err
+	}
+
+	for _, rel := range related {
+		rel.R.Prompt = o
+	}
+
+	o.R.PromptRunJobs = related
+	return nil
+}
+
+// LoadPromptRunJobs loads the prompt's PromptRunJobs into the .R struct
+func (os PromptSlice) LoadPromptRunJobs(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
+	if len(os) == 0 {
+		return nil
+	}
+
+	promptRunJobs, err := os.PromptRunJobs(mods...).All(ctx, exec)
+	if err != nil {
+		return err
+	}
+
+	for _, o := range os {
+		if o == nil {
+			continue
+		}
+
+		o.R.PromptRunJobs = nil
+	}
+
+	for _, o := range os {
+		if o == nil {
+			continue
+		}
+
+		for _, rel := range promptRunJobs {
+
+			if !(o.ID == rel.PromptID) {
+				continue
+			}
+
+			rel.R.Prompt = o
+
+			o.R.PromptRunJobs = append(o.R.PromptRunJobs, rel)
+		}
+	}
+
+	return nil
 }
 
 // LoadUser loads the prompt's User into the .R struct
@@ -729,8 +907,9 @@ func (os PromptSlice) LoadUser(ctx context.Context, exec bob.Executor, mods ...b
 }
 
 type promptJoins[Q dialect.Joinable] struct {
-	typ  string
-	User modAs[Q, userColumns]
+	typ           string
+	PromptRunJobs modAs[Q, promptRunJobColumns]
+	User          modAs[Q, userColumns]
 }
 
 func (j promptJoins[Q]) aliasedAs(alias string) promptJoins[Q] {
@@ -740,6 +919,20 @@ func (j promptJoins[Q]) aliasedAs(alias string) promptJoins[Q] {
 func buildPromptJoins[Q dialect.Joinable](cols promptColumns, typ string) promptJoins[Q] {
 	return promptJoins[Q]{
 		typ: typ,
+		PromptRunJobs: modAs[Q, promptRunJobColumns]{
+			c: PromptRunJobs.Columns,
+			f: func(to promptRunJobColumns) bob.Mod[Q] {
+				mods := make(mods.QueryMods[Q], 0, 1)
+
+				{
+					mods = append(mods, dialect.Join[Q](typ, PromptRunJobs.Name().As(to.Alias())).On(
+						to.PromptID.EQ(cols.ID),
+					))
+				}
+
+				return mods
+			},
+		},
 		User: modAs[Q, userColumns]{
 			c: Users.Columns,
 			f: func(to userColumns) bob.Mod[Q] {

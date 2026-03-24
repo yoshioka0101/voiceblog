@@ -48,7 +48,8 @@ type TranscriptionsQuery = *psql.ViewQuery[*Transcription, TranscriptionSlice]
 
 // transcriptionR is where relationships are stored.
 type transcriptionR struct {
-	User *User // transcriptions.transcriptions_user_id_fkey
+	PromptRunJobs PromptRunJobSlice // prompt_run_jobs.prompt_run_jobs_transcription_id_fkey
+	User          *User             // transcriptions.transcriptions_user_id_fkey
 }
 
 func buildTranscriptionColumns(alias string) transcriptionColumns {
@@ -463,6 +464,30 @@ func (o TranscriptionSlice) ReloadAll(ctx context.Context, exec bob.Executor) er
 	return nil
 }
 
+// PromptRunJobs starts a query for related objects on prompt_run_jobs
+func (o *Transcription) PromptRunJobs(mods ...bob.Mod[*dialect.SelectQuery]) PromptRunJobsQuery {
+	return PromptRunJobs.Query(append(mods,
+		sm.Where(PromptRunJobs.Columns.TranscriptionID.EQ(psql.Arg(o.ID))),
+	)...)
+}
+
+func (os TranscriptionSlice) PromptRunJobs(mods ...bob.Mod[*dialect.SelectQuery]) PromptRunJobsQuery {
+	pkID := make(pgtypes.Array[int64], 0, len(os))
+	for _, o := range os {
+		if o == nil {
+			continue
+		}
+		pkID = append(pkID, o.ID)
+	}
+	PKArgExpr := psql.Select(sm.Columns(
+		psql.F("unnest", psql.Cast(psql.Arg(pkID), "bigint[]")),
+	))
+
+	return PromptRunJobs.Query(append(mods,
+		sm.Where(psql.Group(PromptRunJobs.Columns.TranscriptionID).OP("IN", PKArgExpr)),
+	)...)
+}
+
 // User starts a query for related objects on users
 func (o *Transcription) User(mods ...bob.Mod[*dialect.SelectQuery]) UsersQuery {
 	return Users.Query(append(mods,
@@ -485,6 +510,74 @@ func (os TranscriptionSlice) User(mods ...bob.Mod[*dialect.SelectQuery]) UsersQu
 	return Users.Query(append(mods,
 		sm.Where(psql.Group(Users.Columns.ID).OP("IN", PKArgExpr)),
 	)...)
+}
+
+func insertTranscriptionPromptRunJobs0(ctx context.Context, exec bob.Executor, promptRunJobs1 []*PromptRunJobSetter, transcription0 *Transcription) (PromptRunJobSlice, error) {
+	for i := range promptRunJobs1 {
+		promptRunJobs1[i].TranscriptionID = omit.From(transcription0.ID)
+	}
+
+	ret, err := PromptRunJobs.Insert(bob.ToMods(promptRunJobs1...)).All(ctx, exec)
+	if err != nil {
+		return ret, fmt.Errorf("insertTranscriptionPromptRunJobs0: %w", err)
+	}
+
+	return ret, nil
+}
+
+func attachTranscriptionPromptRunJobs0(ctx context.Context, exec bob.Executor, count int, promptRunJobs1 PromptRunJobSlice, transcription0 *Transcription) (PromptRunJobSlice, error) {
+	setter := &PromptRunJobSetter{
+		TranscriptionID: omit.From(transcription0.ID),
+	}
+
+	err := promptRunJobs1.UpdateAll(ctx, exec, *setter)
+	if err != nil {
+		return nil, fmt.Errorf("attachTranscriptionPromptRunJobs0: %w", err)
+	}
+
+	return promptRunJobs1, nil
+}
+
+func (transcription0 *Transcription) InsertPromptRunJobs(ctx context.Context, exec bob.Executor, related ...*PromptRunJobSetter) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+
+	promptRunJobs1, err := insertTranscriptionPromptRunJobs0(ctx, exec, related, transcription0)
+	if err != nil {
+		return err
+	}
+
+	transcription0.R.PromptRunJobs = append(transcription0.R.PromptRunJobs, promptRunJobs1...)
+
+	for _, rel := range promptRunJobs1 {
+		rel.R.Transcription = transcription0
+	}
+	return nil
+}
+
+func (transcription0 *Transcription) AttachPromptRunJobs(ctx context.Context, exec bob.Executor, related ...*PromptRunJob) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	promptRunJobs1 := PromptRunJobSlice(related)
+
+	_, err = attachTranscriptionPromptRunJobs0(ctx, exec, len(related), promptRunJobs1, transcription0)
+	if err != nil {
+		return err
+	}
+
+	transcription0.R.PromptRunJobs = append(transcription0.R.PromptRunJobs, promptRunJobs1...)
+
+	for _, rel := range related {
+		rel.R.Transcription = transcription0
+	}
+
+	return nil
 }
 
 func attachTranscriptionUser0(ctx context.Context, exec bob.Executor, count int, transcription0 *Transcription, user1 *User) (*Transcription, error) {
@@ -565,6 +658,20 @@ func (o *Transcription) Preload(name string, retrieved any) error {
 	}
 
 	switch name {
+	case "PromptRunJobs":
+		rels, ok := retrieved.(PromptRunJobSlice)
+		if !ok {
+			return fmt.Errorf("transcription cannot load %T as %q", retrieved, name)
+		}
+
+		o.R.PromptRunJobs = rels
+
+		for _, rel := range rels {
+			if rel != nil {
+				rel.R.Transcription = o
+			}
+		}
+		return nil
 	case "User":
 		rel, ok := retrieved.(*User)
 		if !ok {
@@ -605,15 +712,25 @@ func buildTranscriptionPreloader() transcriptionPreloader {
 }
 
 type transcriptionThenLoader[Q orm.Loadable] struct {
-	User func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
+	PromptRunJobs func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
+	User          func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
 }
 
 func buildTranscriptionThenLoader[Q orm.Loadable]() transcriptionThenLoader[Q] {
+	type PromptRunJobsLoadInterface interface {
+		LoadPromptRunJobs(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
+	}
 	type UserLoadInterface interface {
 		LoadUser(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
 	}
 
 	return transcriptionThenLoader[Q]{
+		PromptRunJobs: thenLoadBuilder[Q](
+			"PromptRunJobs",
+			func(ctx context.Context, exec bob.Executor, retrieved PromptRunJobsLoadInterface, mods ...bob.Mod[*dialect.SelectQuery]) error {
+				return retrieved.LoadPromptRunJobs(ctx, exec, mods...)
+			},
+		),
 		User: thenLoadBuilder[Q](
 			"User",
 			func(ctx context.Context, exec bob.Executor, retrieved UserLoadInterface, mods ...bob.Mod[*dialect.SelectQuery]) error {
@@ -621,6 +738,67 @@ func buildTranscriptionThenLoader[Q orm.Loadable]() transcriptionThenLoader[Q] {
 			},
 		),
 	}
+}
+
+// LoadPromptRunJobs loads the transcription's PromptRunJobs into the .R struct
+func (o *Transcription) LoadPromptRunJobs(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
+	if o == nil {
+		return nil
+	}
+
+	// Reset the relationship
+	o.R.PromptRunJobs = nil
+
+	related, err := o.PromptRunJobs(mods...).All(ctx, exec)
+	if err != nil {
+		return err
+	}
+
+	for _, rel := range related {
+		rel.R.Transcription = o
+	}
+
+	o.R.PromptRunJobs = related
+	return nil
+}
+
+// LoadPromptRunJobs loads the transcription's PromptRunJobs into the .R struct
+func (os TranscriptionSlice) LoadPromptRunJobs(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
+	if len(os) == 0 {
+		return nil
+	}
+
+	promptRunJobs, err := os.PromptRunJobs(mods...).All(ctx, exec)
+	if err != nil {
+		return err
+	}
+
+	for _, o := range os {
+		if o == nil {
+			continue
+		}
+
+		o.R.PromptRunJobs = nil
+	}
+
+	for _, o := range os {
+		if o == nil {
+			continue
+		}
+
+		for _, rel := range promptRunJobs {
+
+			if !(o.ID == rel.TranscriptionID) {
+				continue
+			}
+
+			rel.R.Transcription = o
+
+			o.R.PromptRunJobs = append(o.R.PromptRunJobs, rel)
+		}
+	}
+
+	return nil
 }
 
 // LoadUser loads the transcription's User into the .R struct
@@ -676,8 +854,9 @@ func (os TranscriptionSlice) LoadUser(ctx context.Context, exec bob.Executor, mo
 }
 
 type transcriptionJoins[Q dialect.Joinable] struct {
-	typ  string
-	User modAs[Q, userColumns]
+	typ           string
+	PromptRunJobs modAs[Q, promptRunJobColumns]
+	User          modAs[Q, userColumns]
 }
 
 func (j transcriptionJoins[Q]) aliasedAs(alias string) transcriptionJoins[Q] {
@@ -687,6 +866,20 @@ func (j transcriptionJoins[Q]) aliasedAs(alias string) transcriptionJoins[Q] {
 func buildTranscriptionJoins[Q dialect.Joinable](cols transcriptionColumns, typ string) transcriptionJoins[Q] {
 	return transcriptionJoins[Q]{
 		typ: typ,
+		PromptRunJobs: modAs[Q, promptRunJobColumns]{
+			c: PromptRunJobs.Columns,
+			f: func(to promptRunJobColumns) bob.Mod[Q] {
+				mods := make(mods.QueryMods[Q], 0, 1)
+
+				{
+					mods = append(mods, dialect.Join[Q](typ, PromptRunJobs.Name().As(to.Alias())).On(
+						to.TranscriptionID.EQ(cols.ID),
+					))
+				}
+
+				return mods
+			},
+		},
 		User: modAs[Q, userColumns]{
 			c: Users.Columns,
 			f: func(to userColumns) bob.Mod[Q] {

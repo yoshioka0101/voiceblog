@@ -1,6 +1,6 @@
 get:
   summary: List current user's prompts and system prompts
-  operationId: listPrompts
+  operationId: getListPrompts
   security:
     - bearerAuth: []
   responses:

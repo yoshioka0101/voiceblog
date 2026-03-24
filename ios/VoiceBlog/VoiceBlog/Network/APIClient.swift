@@ -124,11 +124,11 @@ actor APIClient {
         return try await request(path: path, method: method, token: token, body: data)
     }
 
-    func fetchMe(token: String) async throws -> User {
+    func getMe(token: String) async throws -> User {
         try await request(path: "/me", token: token)
     }
 
-    func fetchPrompts(token: String) async throws -> [Prompt] {
+    func getListPrompts(token: String) async throws -> [Prompt] {
         try await request(path: "/prompts", token: token)
     }
 
@@ -144,22 +144,42 @@ actor APIClient {
         let _: EmptyResponse = try await request(path: "/prompts/\(id)", method: "DELETE", token: token)
     }
 
-    func fetchTranscriptions(token: String) async throws -> [Transcription] {
-        try await request(path: "/transcriptions", token: token)
-    }
-
-    func fetchTranscription(id: Int64, token: String) async throws -> Transcription {
-        try await request(path: "/transcriptions/\(id)", token: token)
-    }
-
     func createTranscription(request body: TranscriptionCreateRequest, token: String) async throws -> Transcription {
         try await request(path: "/transcriptions", method: "POST", token: token, body: body)
     }
+
+    func getListArticles(token: String) async throws -> [Article] {
+        try await request(path: "/articles", token: token)
+    }
+
+    func getArticle(id: Int64, token: String) async throws -> Article {
+        try await request(path: "/articles/\(id)", token: token)
+    }
+
+    func createArticle(request body: ArticleCreateRequest, token: String) async throws -> Article {
+        try await request(path: "/articles", method: "POST", token: token, body: body)
+    }
+
+    func updateArticle(id: Int64, request body: ArticleUpdateRequest, token: String) async throws -> Article {
+        try await request(path: "/articles/\(id)", method: "PATCH", token: token, body: body)
+    }
+
+    func deleteArticle(id: Int64, token: String) async throws {
+        let _: EmptyResponse = try await request(path: "/articles/\(id)", method: "DELETE", token: token)
+    }
+
+    func createPromptRunJob(request body: PromptRunJobCreateRequest, token: String) async throws -> PromptRunJob {
+        try await request(path: "/prompt-run-jobs", method: "POST", token: token, body: body)
+    }
+
+    func getPromptRunJob(id: Int64, token: String) async throws -> PromptRunJob {
+        try await request(path: "/prompt-run-jobs/\(id)", token: token)
+    }
 }
 
-private struct EmptyResponse {}
-
-extension EmptyResponse: Decodable {}
+private struct EmptyResponse: Decodable, Sendable {
+    nonisolated init() {}
+}
 
 private let apiDateFormatter: ISO8601DateFormatter = {
     let formatter = ISO8601DateFormatter()

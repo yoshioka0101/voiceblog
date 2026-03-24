@@ -16,7 +16,7 @@ import (
 
 func RegisterProtectedRoutes(r gin.IRoutes, useCase *usecase.UseCase) {
 	handler := &Handler{useCase: useCase}
-	r.GET("/prompts", handler.ListPrompts)
+	r.GET("/prompts", handler.GetListPrompts)
 	r.POST("/prompts", handler.CreatePrompt)
 	r.PATCH("/prompts/:id", handler.UpdatePrompt)
 	r.DELETE("/prompts/:id", handler.DeletePrompt)
@@ -26,7 +26,7 @@ type Handler struct {
 	useCase *usecase.UseCase
 }
 
-func (h *Handler) ListPrompts(c *gin.Context) {
+func (h *Handler) GetListPrompts(c *gin.Context) {
 	user, ok := middleware.CurrentUser(c)
 	if !ok {
 		httperror.Unauthorized(c)

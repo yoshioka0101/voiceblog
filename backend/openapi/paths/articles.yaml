@@ -1,6 +1,6 @@
 get:
   summary: List current user's articles
-  operationId: listArticles
+  operationId: getListArticles
   security:
     - bearerAuth: []
   responses:

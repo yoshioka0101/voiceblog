@@ -190,7 +190,7 @@ final class AuthManager {
         let token = try await refreshedIDToken(for: googleUser)
 
         do {
-            user = try await APIClient.shared.fetchMe(token: token)
+            user = try await APIClient.shared.getMe(token: token)
         } catch APIError.unauthorized {
             googleSignIn.signOut()
             user = nil

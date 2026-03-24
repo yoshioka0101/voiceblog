@@ -2,6 +2,8 @@
 .claude/*
 !.claude/config.json
 .serena/
+.agents/
+.specify/
 
 # OS関連
 .DS_Store

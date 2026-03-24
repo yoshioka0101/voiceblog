@@ -1,4 +1,6 @@
-h1:vlrIOA/6jDgLRQr9BKN85vH0F3rV9lqbSLFbdlM9t6E=
+h1:Rv8FNEoF37yP6Z86EtttvZBkj7hcNNBXCKcv5mQ7IJQ=
 20260320_create_users.sql h1:44cCn0Vt9PCV6PcM+3vQmxlsiaZY+tRkPiVvk5LG9es=
 20260322_create_transcriptions.sql h1:/Q9cidQhuAq+HzLDK985L1He8f1SXJ7Q5i7lq56UXuc=
 20260323_create_prompts.sql h1:898xppypf/BheW8CCGTbP4vRJui1f++eGDVH4kqP79s=
+20260324_create_prompt_run_jobs.sql h1:fck2ZpQTqCaY7sUyyqDa1y6n8sXDM9Id9EzOmS1ZZNI=
+20260325_create_articles.sql h1:nM73QgeYg0454Rl137v3o4X53/P0p4gpKovwjS1uL9k=

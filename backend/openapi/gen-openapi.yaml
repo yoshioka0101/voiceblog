@@ -32,7 +32,7 @@ paths:
   /prompts:
     get:
       summary: List current user's prompts and system prompts
-      operationId: listPrompts
+      operationId: getListPrompts
       security:
         - bearerAuth: []
       responses:
@@ -179,7 +179,7 @@ paths:
   /articles:
     get:
       summary: List current user's articles
-      operationId: listArticles
+      operationId: getListArticles
       security:
         - bearerAuth: []
       responses:
@@ -296,22 +296,6 @@ paths:
         '404':
           description: Not Found
   /transcriptions:
-    get:
-      summary: List current user's transcriptions
-      operationId: listTranscriptions
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/transcription'
-        '401':
-          description: Unauthorized
     post:
       summary: Create transcription
       operationId: createTranscription
@@ -334,33 +318,6 @@ paths:
           description: Bad Request
         '401':
           description: Unauthorized
-  /transcriptions/{id}:
-    get:
-      summary: Get transcription detail
-      operationId: getTranscription
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/transcription'
-        '400':
-          description: Bad Request
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
 components:
   schemas:
     ArticleResponse:
@@ -387,8 +344,6 @@ components:
       $ref: '#/components/schemas/prompt_update_request'
     TranscriptionResponse:
       $ref: '#/components/schemas/transcription'
-    TranscriptionsResponse:
-      $ref: '#/components/schemas/transcription_list_response'
     CreateTranscriptionRequest:
       $ref: '#/components/schemas/transcription_create_request'
     UserResponse:
@@ -575,6 +530,19 @@ components:
           type: string
         content:
           type: string
+    transcription_create_request:
+      type: object
+      properties:
+        full_text:
+          type: string
+        segments_json:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+      required:
+        - full_text
+        - segments_json
     transcription:
       type: object
       properties:
@@ -604,19 +572,6 @@ components:
         - segments_json
         - created_at
         - updated_at
-    transcription_create_request:
-      type: object
-      properties:
-        full_text:
-          type: string
-        segments_json:
-          type: array
-          items:
-            type: object
-            additionalProperties: true
-      required:
-        - full_text
-        - segments_json
     article_list_response:
       type: array
       items:
@@ -625,10 +580,6 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/prompt'
-    transcription_list_response:
-      type: array
-      items:
-        $ref: '#/components/schemas/transcription'
   securitySchemes:
     bearerAuth:
       type: http

@@ -21,8 +21,6 @@ paths:
     $ref: ./paths/article_by_id.yaml
   /transcriptions:
     $ref: ./paths/transcriptions.yaml
-  /transcriptions/{id}:
-    $ref: ./paths/transcription_by_id.yaml
 components:
   schemas:
     ArticleResponse:
@@ -49,8 +47,6 @@ components:
       $ref: ./components/schemas/prompt_update_request.yaml
     TranscriptionResponse:
       $ref: ./components/schemas/transcription.yaml
-    TranscriptionsResponse:
-      $ref: ./components/schemas/transcription_list_response.yaml
     CreateTranscriptionRequest:
       $ref: ./components/schemas/transcription_create_request.yaml
     UserResponse:

@@ -44,9 +44,6 @@ type PromptsResponse = PromptListResponse
 // TranscriptionResponse defines model for TranscriptionResponse.
 type TranscriptionResponse = Transcription
 
-// TranscriptionsResponse defines model for TranscriptionsResponse.
-type TranscriptionsResponse = TranscriptionListResponse
-
 // UpdateArticleRequest defines model for UpdateArticleRequest.
 type UpdateArticleRequest = ArticleUpdateRequest
 
@@ -153,9 +150,6 @@ type TranscriptionCreateRequest struct {
 	FullText     string                   `json:"full_text"`
 	SegmentsJson []map[string]interface{} `json:"segments_json"`
 }
-
-// TranscriptionListResponse defines model for transcription_list_response.
-type TranscriptionListResponse = []Transcription
 
 // User defines model for user.
 type User struct {

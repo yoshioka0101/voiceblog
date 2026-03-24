@@ -9,8 +9,6 @@ import (
 
 	"github.com/aarondl/opt/omit"
 	"github.com/stephenafamo/bob"
-	"github.com/stephenafamo/bob/dialect/psql"
-	"github.com/stephenafamo/bob/dialect/psql/sm"
 	"github.com/stephenafamo/bob/types"
 
 	entity "github.com/yoshioka0101/voiceblog/backend/internal/entity/transcription"
@@ -39,23 +37,6 @@ func (r *TranscriptionRepository) Create(ctx context.Context, transcriptionEntit
 	return toTranscriptionEntity(value), nil
 }
 
-func (r *TranscriptionRepository) ListByUserID(ctx context.Context, userID int64) ([]*entity.Transcription, error) {
-	values, err := models.Transcriptions.Query(
-		sm.Where(models.Transcriptions.Columns.UserID.EQ(psql.Arg(userID))),
-		sm.OrderBy(models.Transcriptions.Columns.CreatedAt).Desc(),
-		sm.OrderBy(models.Transcriptions.Columns.ID).Desc(),
-	).All(ctx, r.db)
-	if err != nil {
-		return nil, fmt.Errorf("list transcriptions: %w", err)
-	}
-
-	result := make([]*entity.Transcription, 0, len(values))
-	for _, value := range values {
-		result = append(result, toTranscriptionEntity(value))
-	}
-
-	return result, nil
-}
 
 func (r *TranscriptionRepository) FindByID(ctx context.Context, id int64) (*entity.Transcription, error) {
 	value, err := models.FindTranscription(ctx, r.db, id)

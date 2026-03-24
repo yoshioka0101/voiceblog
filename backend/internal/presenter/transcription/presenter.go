@@ -24,18 +24,6 @@ func Transcription(value *entity.Transcription) (api.TranscriptionResponse, erro
 	}, nil
 }
 
-func Transcriptions(values []*entity.Transcription) (api.TranscriptionsResponse, error) {
-	responses := make(api.TranscriptionsResponse, 0, len(values))
-	for _, value := range values {
-		response, err := Transcription(value)
-		if err != nil {
-			return nil, err
-		}
-		responses = append(responses, response)
-	}
-
-	return responses, nil
-}
 
 func decodeSegmentsJSON(raw json.RawMessage) ([]map[string]interface{}, error) {
 	var segments []map[string]interface{}

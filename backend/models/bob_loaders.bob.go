@@ -17,20 +17,24 @@ import (
 var Preload = getPreloaders()
 
 type preloaders struct {
-	Article       articlePreloader
-	PromptRunJob  promptRunJobPreloader
-	Prompt        promptPreloader
-	Transcription transcriptionPreloader
-	User          userPreloader
+	ArticleShareTarget articleShareTargetPreloader
+	Article            articlePreloader
+	ExternalToken      externalTokenPreloader
+	PromptRunJob       promptRunJobPreloader
+	Prompt             promptPreloader
+	Transcription      transcriptionPreloader
+	User               userPreloader
 }
 
 func getPreloaders() preloaders {
 	return preloaders{
-		Article:       buildArticlePreloader(),
-		PromptRunJob:  buildPromptRunJobPreloader(),
-		Prompt:        buildPromptPreloader(),
-		Transcription: buildTranscriptionPreloader(),
-		User:          buildUserPreloader(),
+		ArticleShareTarget: buildArticleShareTargetPreloader(),
+		Article:            buildArticlePreloader(),
+		ExternalToken:      buildExternalTokenPreloader(),
+		PromptRunJob:       buildPromptRunJobPreloader(),
+		Prompt:             buildPromptPreloader(),
+		Transcription:      buildTranscriptionPreloader(),
+		User:               buildUserPreloader(),
 	}
 }
 
@@ -41,20 +45,24 @@ var (
 )
 
 type thenLoaders[Q orm.Loadable] struct {
-	Article       articleThenLoader[Q]
-	PromptRunJob  promptRunJobThenLoader[Q]
-	Prompt        promptThenLoader[Q]
-	Transcription transcriptionThenLoader[Q]
-	User          userThenLoader[Q]
+	ArticleShareTarget articleShareTargetThenLoader[Q]
+	Article            articleThenLoader[Q]
+	ExternalToken      externalTokenThenLoader[Q]
+	PromptRunJob       promptRunJobThenLoader[Q]
+	Prompt             promptThenLoader[Q]
+	Transcription      transcriptionThenLoader[Q]
+	User               userThenLoader[Q]
 }
 
 func getThenLoaders[Q orm.Loadable]() thenLoaders[Q] {
 	return thenLoaders[Q]{
-		Article:       buildArticleThenLoader[Q](),
-		PromptRunJob:  buildPromptRunJobThenLoader[Q](),
-		Prompt:        buildPromptThenLoader[Q](),
-		Transcription: buildTranscriptionThenLoader[Q](),
-		User:          buildUserThenLoader[Q](),
+		ArticleShareTarget: buildArticleShareTargetThenLoader[Q](),
+		Article:            buildArticleThenLoader[Q](),
+		ExternalToken:      buildExternalTokenThenLoader[Q](),
+		PromptRunJob:       buildPromptRunJobThenLoader[Q](),
+		Prompt:             buildPromptThenLoader[Q](),
+		Transcription:      buildTranscriptionThenLoader[Q](),
+		User:               buildUserThenLoader[Q](),
 	}
 }
 

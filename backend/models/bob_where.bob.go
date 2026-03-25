@@ -17,23 +17,29 @@ var (
 )
 
 func Where[Q psql.Filterable]() struct {
-	Articles       articleWhere[Q]
-	PromptRunJobs  promptRunJobWhere[Q]
-	Prompts        promptWhere[Q]
-	Transcriptions transcriptionWhere[Q]
-	Users          userWhere[Q]
+	ArticleShareTargets articleShareTargetWhere[Q]
+	Articles            articleWhere[Q]
+	ExternalTokens      externalTokenWhere[Q]
+	PromptRunJobs       promptRunJobWhere[Q]
+	Prompts             promptWhere[Q]
+	Transcriptions      transcriptionWhere[Q]
+	Users               userWhere[Q]
 } {
 	return struct {
-		Articles       articleWhere[Q]
-		PromptRunJobs  promptRunJobWhere[Q]
-		Prompts        promptWhere[Q]
-		Transcriptions transcriptionWhere[Q]
-		Users          userWhere[Q]
+		ArticleShareTargets articleShareTargetWhere[Q]
+		Articles            articleWhere[Q]
+		ExternalTokens      externalTokenWhere[Q]
+		PromptRunJobs       promptRunJobWhere[Q]
+		Prompts             promptWhere[Q]
+		Transcriptions      transcriptionWhere[Q]
+		Users               userWhere[Q]
 	}{
-		Articles:       buildArticleWhere[Q](Articles.Columns),
-		PromptRunJobs:  buildPromptRunJobWhere[Q](PromptRunJobs.Columns),
-		Prompts:        buildPromptWhere[Q](Prompts.Columns),
-		Transcriptions: buildTranscriptionWhere[Q](Transcriptions.Columns),
-		Users:          buildUserWhere[Q](Users.Columns),
+		ArticleShareTargets: buildArticleShareTargetWhere[Q](ArticleShareTargets.Columns),
+		Articles:            buildArticleWhere[Q](Articles.Columns),
+		ExternalTokens:      buildExternalTokenWhere[Q](ExternalTokens.Columns),
+		PromptRunJobs:       buildPromptRunJobWhere[Q](PromptRunJobs.Columns),
+		Prompts:             buildPromptWhere[Q](Prompts.Columns),
+		Transcriptions:      buildTranscriptionWhere[Q](Transcriptions.Columns),
+		Users:               buildUserWhere[Q](Users.Columns),
 	}
 }

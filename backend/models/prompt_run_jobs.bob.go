@@ -26,16 +26,16 @@ import (
 
 // PromptRunJob is an object representing the database table.
 type PromptRunJob struct {
-	ID              int64            `db:"id,pk" `
-	TranscriptionID int64            `db:"transcription_id" `
-	PromptID        int64            `db:"prompt_id" `
-	Status          string           `db:"status" `
-	AttemptCount    int32            `db:"attempt_count" `
-	NextRunAt       time.Time        `db:"next_run_at" `
+	ID               int64            `db:"id,pk" `
+	TranscriptionID  int64            `db:"transcription_id" `
+	PromptID         int64            `db:"prompt_id" `
+	Status           string           `db:"status" `
+	AttemptCount     int32            `db:"attempt_count" `
+	NextRunAt        time.Time        `db:"next_run_at" `
 	ErrorMessage     null.Val[string] `db:"error_message" `
+	CreatedAt        time.Time        `db:"created_at" `
 	GeneratedTitle   null.Val[string] `db:"generated_title" `
 	GeneratedContent null.Val[string] `db:"generated_content" `
-	CreatedAt        time.Time        `db:"created_at" `
 
 	R promptRunJobR `db:"-" `
 }
@@ -60,7 +60,7 @@ type promptRunJobR struct {
 func buildPromptRunJobColumns(alias string) promptRunJobColumns {
 	return promptRunJobColumns{
 		ColumnsExpr: expr.NewColumnsExpr(
-			"id", "transcription_id", "prompt_id", "status", "attempt_count", "next_run_at", "error_message", "generated_title", "generated_content", "created_at",
+			"id", "transcription_id", "prompt_id", "status", "attempt_count", "next_run_at", "error_message", "created_at", "generated_title", "generated_content",
 		).WithParent("prompt_run_jobs"),
 		tableAlias:       alias,
 		ID:               psql.Quote(alias, "id"),
@@ -70,9 +70,9 @@ func buildPromptRunJobColumns(alias string) promptRunJobColumns {
 		AttemptCount:     psql.Quote(alias, "attempt_count"),
 		NextRunAt:        psql.Quote(alias, "next_run_at"),
 		ErrorMessage:     psql.Quote(alias, "error_message"),
+		CreatedAt:        psql.Quote(alias, "created_at"),
 		GeneratedTitle:   psql.Quote(alias, "generated_title"),
 		GeneratedContent: psql.Quote(alias, "generated_content"),
-		CreatedAt:        psql.Quote(alias, "created_at"),
 	}
 }
 
@@ -86,9 +86,9 @@ type promptRunJobColumns struct {
 	AttemptCount     psql.Expression
 	NextRunAt        psql.Expression
 	ErrorMessage     psql.Expression
+	CreatedAt        psql.Expression
 	GeneratedTitle   psql.Expression
 	GeneratedContent psql.Expression
-	CreatedAt        psql.Expression
 }
 
 func (c promptRunJobColumns) Alias() string {
@@ -103,16 +103,16 @@ func (promptRunJobColumns) AliasedAs(alias string) promptRunJobColumns {
 // All values are optional, and do not have to be set
 // Generated columns are not included
 type PromptRunJobSetter struct {
-	ID              omit.Val[int64]      `db:"id,pk" `
-	TranscriptionID omit.Val[int64]      `db:"transcription_id" `
-	PromptID        omit.Val[int64]      `db:"prompt_id" `
-	Status          omit.Val[string]     `db:"status" `
-	AttemptCount    omit.Val[int32]      `db:"attempt_count" `
-	NextRunAt       omit.Val[time.Time]  `db:"next_run_at" `
+	ID               omit.Val[int64]      `db:"id,pk" `
+	TranscriptionID  omit.Val[int64]      `db:"transcription_id" `
+	PromptID         omit.Val[int64]      `db:"prompt_id" `
+	Status           omit.Val[string]     `db:"status" `
+	AttemptCount     omit.Val[int32]      `db:"attempt_count" `
+	NextRunAt        omit.Val[time.Time]  `db:"next_run_at" `
 	ErrorMessage     omitnull.Val[string] `db:"error_message" `
+	CreatedAt        omit.Val[time.Time]  `db:"created_at" `
 	GeneratedTitle   omitnull.Val[string] `db:"generated_title" `
 	GeneratedContent omitnull.Val[string] `db:"generated_content" `
-	CreatedAt        omit.Val[time.Time]  `db:"created_at" `
 }
 
 func (s PromptRunJobSetter) SetColumns() []string {
@@ -138,14 +138,14 @@ func (s PromptRunJobSetter) SetColumns() []string {
 	if !s.ErrorMessage.IsUnset() {
 		vals = append(vals, "error_message")
 	}
+	if s.CreatedAt.IsValue() {
+		vals = append(vals, "created_at")
+	}
 	if !s.GeneratedTitle.IsUnset() {
 		vals = append(vals, "generated_title")
 	}
 	if !s.GeneratedContent.IsUnset() {
 		vals = append(vals, "generated_content")
-	}
-	if s.CreatedAt.IsValue() {
-		vals = append(vals, "created_at")
 	}
 	return vals
 }
@@ -172,14 +172,14 @@ func (s PromptRunJobSetter) Overwrite(t *PromptRunJob) {
 	if !s.ErrorMessage.IsUnset() {
 		t.ErrorMessage = s.ErrorMessage.MustGetNull()
 	}
+	if s.CreatedAt.IsValue() {
+		t.CreatedAt = s.CreatedAt.MustGet()
+	}
 	if !s.GeneratedTitle.IsUnset() {
 		t.GeneratedTitle = s.GeneratedTitle.MustGetNull()
 	}
 	if !s.GeneratedContent.IsUnset() {
 		t.GeneratedContent = s.GeneratedContent.MustGetNull()
-	}
-	if s.CreatedAt.IsValue() {
-		t.CreatedAt = s.CreatedAt.MustGet()
 	}
 }
 
@@ -232,20 +232,20 @@ func (s *PromptRunJobSetter) Apply(q *dialect.InsertQuery) {
 			vals[6] = psql.Raw("DEFAULT")
 		}
 
-		if !s.GeneratedTitle.IsUnset() {
-			vals[7] = psql.Arg(s.GeneratedTitle.MustGetNull())
+		if s.CreatedAt.IsValue() {
+			vals[7] = psql.Arg(s.CreatedAt.MustGet())
 		} else {
 			vals[7] = psql.Raw("DEFAULT")
 		}
 
-		if !s.GeneratedContent.IsUnset() {
-			vals[8] = psql.Arg(s.GeneratedContent.MustGetNull())
+		if !s.GeneratedTitle.IsUnset() {
+			vals[8] = psql.Arg(s.GeneratedTitle.MustGetNull())
 		} else {
 			vals[8] = psql.Raw("DEFAULT")
 		}
 
-		if s.CreatedAt.IsValue() {
-			vals[9] = psql.Arg(s.CreatedAt.MustGet())
+		if !s.GeneratedContent.IsUnset() {
+			vals[9] = psql.Arg(s.GeneratedContent.MustGetNull())
 		} else {
 			vals[9] = psql.Raw("DEFAULT")
 		}
@@ -310,6 +310,13 @@ func (s PromptRunJobSetter) Expressions(prefix ...string) []bob.Expression {
 		}})
 	}
 
+	if s.CreatedAt.IsValue() {
+		exprs = append(exprs, expr.Join{Sep: " = ", Exprs: []bob.Expression{
+			psql.Quote(append(prefix, "created_at")...),
+			psql.Arg(s.CreatedAt),
+		}})
+	}
+
 	if !s.GeneratedTitle.IsUnset() {
 		exprs = append(exprs, expr.Join{Sep: " = ", Exprs: []bob.Expression{
 			psql.Quote(append(prefix, "generated_title")...),
@@ -321,13 +328,6 @@ func (s PromptRunJobSetter) Expressions(prefix ...string) []bob.Expression {
 		exprs = append(exprs, expr.Join{Sep: " = ", Exprs: []bob.Expression{
 			psql.Quote(append(prefix, "generated_content")...),
 			psql.Arg(s.GeneratedContent),
-		}})
-	}
-
-	if s.CreatedAt.IsValue() {
-		exprs = append(exprs, expr.Join{Sep: " = ", Exprs: []bob.Expression{
-			psql.Quote(append(prefix, "created_at")...),
-			psql.Arg(s.CreatedAt),
 		}})
 	}
 
@@ -780,14 +780,16 @@ func (promptRunJob0 *PromptRunJob) AttachTranscription(ctx context.Context, exec
 }
 
 type promptRunJobWhere[Q psql.Filterable] struct {
-	ID              psql.WhereMod[Q, int64]
-	TranscriptionID psql.WhereMod[Q, int64]
-	PromptID        psql.WhereMod[Q, int64]
-	Status          psql.WhereMod[Q, string]
-	AttemptCount    psql.WhereMod[Q, int32]
-	NextRunAt       psql.WhereMod[Q, time.Time]
-	ErrorMessage    psql.WhereNullMod[Q, string]
-	CreatedAt       psql.WhereMod[Q, time.Time]
+	ID               psql.WhereMod[Q, int64]
+	TranscriptionID  psql.WhereMod[Q, int64]
+	PromptID         psql.WhereMod[Q, int64]
+	Status           psql.WhereMod[Q, string]
+	AttemptCount     psql.WhereMod[Q, int32]
+	NextRunAt        psql.WhereMod[Q, time.Time]
+	ErrorMessage     psql.WhereNullMod[Q, string]
+	CreatedAt        psql.WhereMod[Q, time.Time]
+	GeneratedTitle   psql.WhereNullMod[Q, string]
+	GeneratedContent psql.WhereNullMod[Q, string]
 }
 
 func (promptRunJobWhere[Q]) AliasedAs(alias string) promptRunJobWhere[Q] {
@@ -796,14 +798,16 @@ func (promptRunJobWhere[Q]) AliasedAs(alias string) promptRunJobWhere[Q] {
 
 func buildPromptRunJobWhere[Q psql.Filterable](cols promptRunJobColumns) promptRunJobWhere[Q] {
 	return promptRunJobWhere[Q]{
-		ID:              psql.Where[Q, int64](cols.ID),
-		TranscriptionID: psql.Where[Q, int64](cols.TranscriptionID),
-		PromptID:        psql.Where[Q, int64](cols.PromptID),
-		Status:          psql.Where[Q, string](cols.Status),
-		AttemptCount:    psql.Where[Q, int32](cols.AttemptCount),
-		NextRunAt:       psql.Where[Q, time.Time](cols.NextRunAt),
-		ErrorMessage:    psql.WhereNull[Q, string](cols.ErrorMessage),
-		CreatedAt:       psql.Where[Q, time.Time](cols.CreatedAt),
+		ID:               psql.Where[Q, int64](cols.ID),
+		TranscriptionID:  psql.Where[Q, int64](cols.TranscriptionID),
+		PromptID:         psql.Where[Q, int64](cols.PromptID),
+		Status:           psql.Where[Q, string](cols.Status),
+		AttemptCount:     psql.Where[Q, int32](cols.AttemptCount),
+		NextRunAt:        psql.Where[Q, time.Time](cols.NextRunAt),
+		ErrorMessage:     psql.WhereNull[Q, string](cols.ErrorMessage),
+		CreatedAt:        psql.Where[Q, time.Time](cols.CreatedAt),
+		GeneratedTitle:   psql.WhereNull[Q, string](cols.GeneratedTitle),
+		GeneratedContent: psql.WhereNull[Q, string](cols.GeneratedContent),
 	}
 }
 

@@ -50,8 +50,9 @@ type ArticlesQuery = *psql.ViewQuery[*Article, ArticleSlice]
 
 // articleR is where relationships are stored.
 type articleR struct {
-	PromptRunJob *PromptRunJob // articles.articles_prompt_run_job_id_fkey
-	User         *User         // articles.articles_user_id_fkey
+	ArticleShareTargets ArticleShareTargetSlice // article_share_targets.article_share_targets_article_id_fkey
+	PromptRunJob        *PromptRunJob           // articles.articles_prompt_run_job_id_fkey
+	User                *User                   // articles.articles_user_id_fkey
 }
 
 func buildArticleColumns(alias string) articleColumns {
@@ -510,6 +511,30 @@ func (o ArticleSlice) ReloadAll(ctx context.Context, exec bob.Executor) error {
 	return nil
 }
 
+// ArticleShareTargets starts a query for related objects on article_share_targets
+func (o *Article) ArticleShareTargets(mods ...bob.Mod[*dialect.SelectQuery]) ArticleShareTargetsQuery {
+	return ArticleShareTargets.Query(append(mods,
+		sm.Where(ArticleShareTargets.Columns.ArticleID.EQ(psql.Arg(o.ID))),
+	)...)
+}
+
+func (os ArticleSlice) ArticleShareTargets(mods ...bob.Mod[*dialect.SelectQuery]) ArticleShareTargetsQuery {
+	pkID := make(pgtypes.Array[int64], 0, len(os))
+	for _, o := range os {
+		if o == nil {
+			continue
+		}
+		pkID = append(pkID, o.ID)
+	}
+	PKArgExpr := psql.Select(sm.Columns(
+		psql.F("unnest", psql.Cast(psql.Arg(pkID), "bigint[]")),
+	))
+
+	return ArticleShareTargets.Query(append(mods,
+		sm.Where(psql.Group(ArticleShareTargets.Columns.ArticleID).OP("IN", PKArgExpr)),
+	)...)
+}
+
 // PromptRunJob starts a query for related objects on prompt_run_jobs
 func (o *Article) PromptRunJob(mods ...bob.Mod[*dialect.SelectQuery]) PromptRunJobsQuery {
 	return PromptRunJobs.Query(append(mods,
@@ -556,6 +581,74 @@ func (os ArticleSlice) User(mods ...bob.Mod[*dialect.SelectQuery]) UsersQuery {
 	return Users.Query(append(mods,
 		sm.Where(psql.Group(Users.Columns.ID).OP("IN", PKArgExpr)),
 	)...)
+}
+
+func insertArticleArticleShareTargets0(ctx context.Context, exec bob.Executor, articleShareTargets1 []*ArticleShareTargetSetter, article0 *Article) (ArticleShareTargetSlice, error) {
+	for i := range articleShareTargets1 {
+		articleShareTargets1[i].ArticleID = omit.From(article0.ID)
+	}
+
+	ret, err := ArticleShareTargets.Insert(bob.ToMods(articleShareTargets1...)).All(ctx, exec)
+	if err != nil {
+		return ret, fmt.Errorf("insertArticleArticleShareTargets0: %w", err)
+	}
+
+	return ret, nil
+}
+
+func attachArticleArticleShareTargets0(ctx context.Context, exec bob.Executor, count int, articleShareTargets1 ArticleShareTargetSlice, article0 *Article) (ArticleShareTargetSlice, error) {
+	setter := &ArticleShareTargetSetter{
+		ArticleID: omit.From(article0.ID),
+	}
+
+	err := articleShareTargets1.UpdateAll(ctx, exec, *setter)
+	if err != nil {
+		return nil, fmt.Errorf("attachArticleArticleShareTargets0: %w", err)
+	}
+
+	return articleShareTargets1, nil
+}
+
+func (article0 *Article) InsertArticleShareTargets(ctx context.Context, exec bob.Executor, related ...*ArticleShareTargetSetter) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+
+	articleShareTargets1, err := insertArticleArticleShareTargets0(ctx, exec, related, article0)
+	if err != nil {
+		return err
+	}
+
+	article0.R.ArticleShareTargets = append(article0.R.ArticleShareTargets, articleShareTargets1...)
+
+	for _, rel := range articleShareTargets1 {
+		rel.R.Article = article0
+	}
+	return nil
+}
+
+func (article0 *Article) AttachArticleShareTargets(ctx context.Context, exec bob.Executor, related ...*ArticleShareTarget) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	articleShareTargets1 := ArticleShareTargetSlice(related)
+
+	_, err = attachArticleArticleShareTargets0(ctx, exec, len(related), articleShareTargets1, article0)
+	if err != nil {
+		return err
+	}
+
+	article0.R.ArticleShareTargets = append(article0.R.ArticleShareTargets, articleShareTargets1...)
+
+	for _, rel := range related {
+		rel.R.Article = article0
+	}
+
+	return nil
 }
 
 func attachArticlePromptRunJob0(ctx context.Context, exec bob.Executor, count int, article0 *Article, promptRunJob1 *PromptRunJob) (*Article, error) {
@@ -688,6 +781,20 @@ func (o *Article) Preload(name string, retrieved any) error {
 	}
 
 	switch name {
+	case "ArticleShareTargets":
+		rels, ok := retrieved.(ArticleShareTargetSlice)
+		if !ok {
+			return fmt.Errorf("article cannot load %T as %q", retrieved, name)
+		}
+
+		o.R.ArticleShareTargets = rels
+
+		for _, rel := range rels {
+			if rel != nil {
+				rel.R.Article = o
+			}
+		}
+		return nil
 	case "PromptRunJob":
 		rel, ok := retrieved.(*PromptRunJob)
 		if !ok {
@@ -754,11 +861,15 @@ func buildArticlePreloader() articlePreloader {
 }
 
 type articleThenLoader[Q orm.Loadable] struct {
-	PromptRunJob func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
-	User         func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
+	ArticleShareTargets func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
+	PromptRunJob        func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
+	User                func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
 }
 
 func buildArticleThenLoader[Q orm.Loadable]() articleThenLoader[Q] {
+	type ArticleShareTargetsLoadInterface interface {
+		LoadArticleShareTargets(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
+	}
 	type PromptRunJobLoadInterface interface {
 		LoadPromptRunJob(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
 	}
@@ -767,6 +878,12 @@ func buildArticleThenLoader[Q orm.Loadable]() articleThenLoader[Q] {
 	}
 
 	return articleThenLoader[Q]{
+		ArticleShareTargets: thenLoadBuilder[Q](
+			"ArticleShareTargets",
+			func(ctx context.Context, exec bob.Executor, retrieved ArticleShareTargetsLoadInterface, mods ...bob.Mod[*dialect.SelectQuery]) error {
+				return retrieved.LoadArticleShareTargets(ctx, exec, mods...)
+			},
+		),
 		PromptRunJob: thenLoadBuilder[Q](
 			"PromptRunJob",
 			func(ctx context.Context, exec bob.Executor, retrieved PromptRunJobLoadInterface, mods ...bob.Mod[*dialect.SelectQuery]) error {
@@ -780,6 +897,67 @@ func buildArticleThenLoader[Q orm.Loadable]() articleThenLoader[Q] {
 			},
 		),
 	}
+}
+
+// LoadArticleShareTargets loads the article's ArticleShareTargets into the .R struct
+func (o *Article) LoadArticleShareTargets(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
+	if o == nil {
+		return nil
+	}
+
+	// Reset the relationship
+	o.R.ArticleShareTargets = nil
+
+	related, err := o.ArticleShareTargets(mods...).All(ctx, exec)
+	if err != nil {
+		return err
+	}
+
+	for _, rel := range related {
+		rel.R.Article = o
+	}
+
+	o.R.ArticleShareTargets = related
+	return nil
+}
+
+// LoadArticleShareTargets loads the article's ArticleShareTargets into the .R struct
+func (os ArticleSlice) LoadArticleShareTargets(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
+	if len(os) == 0 {
+		return nil
+	}
+
+	articleShareTargets, err := os.ArticleShareTargets(mods...).All(ctx, exec)
+	if err != nil {
+		return err
+	}
+
+	for _, o := range os {
+		if o == nil {
+			continue
+		}
+
+		o.R.ArticleShareTargets = nil
+	}
+
+	for _, o := range os {
+		if o == nil {
+			continue
+		}
+
+		for _, rel := range articleShareTargets {
+
+			if !(o.ID == rel.ArticleID) {
+				continue
+			}
+
+			rel.R.Article = o
+
+			o.R.ArticleShareTargets = append(o.R.ArticleShareTargets, rel)
+		}
+	}
+
+	return nil
 }
 
 // LoadPromptRunJob loads the article's PromptRunJob into the .R struct
@@ -890,9 +1068,10 @@ func (os ArticleSlice) LoadUser(ctx context.Context, exec bob.Executor, mods ...
 }
 
 type articleJoins[Q dialect.Joinable] struct {
-	typ          string
-	PromptRunJob modAs[Q, promptRunJobColumns]
-	User         modAs[Q, userColumns]
+	typ                 string
+	ArticleShareTargets modAs[Q, articleShareTargetColumns]
+	PromptRunJob        modAs[Q, promptRunJobColumns]
+	User                modAs[Q, userColumns]
 }
 
 func (j articleJoins[Q]) aliasedAs(alias string) articleJoins[Q] {
@@ -902,6 +1081,20 @@ func (j articleJoins[Q]) aliasedAs(alias string) articleJoins[Q] {
 func buildArticleJoins[Q dialect.Joinable](cols articleColumns, typ string) articleJoins[Q] {
 	return articleJoins[Q]{
 		typ: typ,
+		ArticleShareTargets: modAs[Q, articleShareTargetColumns]{
+			c: ArticleShareTargets.Columns,
+			f: func(to articleShareTargetColumns) bob.Mod[Q] {
+				mods := make(mods.QueryMods[Q], 0, 1)
+
+				{
+					mods = append(mods, dialect.Join[Q](typ, ArticleShareTargets.Name().As(to.Alias())).On(
+						to.ArticleID.EQ(cols.ID),
+					))
+				}
+
+				return mods
+			},
+		},
 		PromptRunJob: modAs[Q, promptRunJobColumns]{
 			c: PromptRunJobs.Columns,
 			f: func(to promptRunJobColumns) bob.Mod[Q] {

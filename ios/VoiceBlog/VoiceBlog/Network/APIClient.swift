@@ -184,6 +184,26 @@ actor APIClient {
     func getPromptRunJob(id: Int64, token: String) async throws -> PromptRunJob {
         try await request(path: "/prompt-run-jobs/\(id)", token: token)
     }
+
+    func getIntegrations(token: String) async throws -> [Integration] {
+        try await request(path: "/integrations", token: token)
+    }
+
+    func storeToken(provider: String, request body: StoreTokenRequest, token: String) async throws {
+        let _: EmptyResponse = try await request(path: "/integrations/\(provider)/token", method: "PUT", token: token, body: body)
+    }
+
+    func deleteToken(provider: String, token: String) async throws {
+        let _: EmptyResponse = try await request(path: "/integrations/\(provider)/token", method: "DELETE", token: token)
+    }
+
+    func publishArticle(id: Int64, request body: PublishRequest, token: String) async throws -> ShareTarget {
+        try await request(path: "/articles/\(id)/publish", method: "POST", token: token, body: body)
+    }
+
+    func getShareTargets(articleId: Int64, token: String) async throws -> [ShareTarget] {
+        try await request(path: "/articles/\(articleId)/share-targets", token: token)
+    }
 }
 
 private struct EmptyResponse: Decodable, Sendable {

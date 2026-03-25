@@ -8,11 +8,12 @@ import (
 )
 
 type Config struct {
-	Port           string
-	LogLevel       slog.Level
-	DBDSN          string
-	GoogleClientID string
-	GeminiAPIKey   string
+	Port               string
+	LogLevel           slog.Level
+	DBDSN              string
+	GoogleClientID     string
+	GeminiAPIKey       string
+	TokenEncryptionKey string
 }
 
 func Load() (Config, error) {
@@ -37,11 +38,12 @@ func Load() (Config, error) {
 	}
 
 	return Config{
-		Port:           port,
-		LogLevel:       logLevel,
-		DBDSN:          dbDSN,
-		GoogleClientID: googleClientID,
-		GeminiAPIKey:   getEnv("GEMINI_API_KEY", ""),
+		Port:               port,
+		LogLevel:           logLevel,
+		DBDSN:              dbDSN,
+		GoogleClientID:     googleClientID,
+		GeminiAPIKey:       getEnv("GEMINI_API_KEY", ""),
+		TokenEncryptionKey: getEnv("TOKEN_ENCRYPTION_KEY", ""),
 	}, nil
 }
 

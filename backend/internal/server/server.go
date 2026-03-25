@@ -23,7 +23,7 @@ func New(db *sql.DB, cfg *config.Config, log *slog.Logger) *Server {
 	router := gin.New()
 	router.Use(requestLogger(log), recoveryLogger(log))
 
-	container := di.New(db, cfg.GoogleClientID, cfg.GeminiAPIKey)
+	container := di.New(db, cfg.GoogleClientID, cfg.GeminiAPIKey, cfg.TokenEncryptionKey)
 	handler.RegisterRoutes(router, container)
 
 	return &Server{engine: router}

@@ -83,6 +83,13 @@ struct ArticleDetailView: View {
                             .foregroundStyle(.teal)
                             .transition(.opacity)
                     }
+
+                    NavigationLink {
+                        ArticleShareView(auth: auth, article: article)
+                    } label: {
+                        Label("外部サービスに投稿", systemImage: "paperplane")
+                    }
+                    .buttonStyle(AppSecondaryButtonStyle(tint: .purple))
                 }
             }
             .padding(20)

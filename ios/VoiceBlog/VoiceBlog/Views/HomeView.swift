@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
     var auth: AuthManager
     @State private var showingPromptSettings = false
+    @State private var showingIntegrationSettings = false
     @State private var speechSessionID = UUID()
 
     var body: some View {
@@ -30,6 +31,10 @@ struct HomeView: View {
                             showingPromptSettings = true
                         }
 
+                        Button("外部連携設定") {
+                            showingIntegrationSettings = true
+                        }
+
                         Divider()
 
                         Button("ログアウト", role: .destructive) {
@@ -42,6 +47,9 @@ struct HomeView: View {
             }
             .navigationDestination(isPresented: $showingPromptSettings) {
                 PromptListView(auth: auth)
+            }
+            .navigationDestination(isPresented: $showingIntegrationSettings) {
+                IntegrationSettingsView(auth: auth)
             }
         }
     }

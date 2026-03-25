@@ -198,7 +198,7 @@ final class AuthManager {
         }
     }
 
-    private func refreshedIDToken(for googleUser: GIDGoogleUser) async throws -> String {
+    private nonisolated func refreshedIDToken(for googleUser: GIDGoogleUser) async throws -> String {
         let refreshedUser: GIDGoogleUser = try await withCheckedThrowingContinuation { continuation in
             googleUser.refreshTokensIfNeeded { user, error in
                 if let error {

@@ -138,7 +138,9 @@ final class SpeechCaptureViewModel {
             state = .saving
             statusMessage = "文字起こしを保存しています。"
 
+            print("[SaveTranscription] fetching token...")
             let token = try await auth.fetchIDToken()
+            print("[SaveTranscription] token acquired, sending request...")
             let created = try await APIClient.shared.createTranscription(
                 request: TranscriptionCreateRequest(
                     fullText: transcriptText,
@@ -151,6 +153,7 @@ final class SpeechCaptureViewModel {
             state = .saved
             statusMessage = "文字起こしを保存しました。"
         } catch {
+            print("[SaveTranscription] error: \(error)")
             state = .readyToSave
             statusMessage = "保存に失敗しました。"
             errorMessage = error.localizedDescription

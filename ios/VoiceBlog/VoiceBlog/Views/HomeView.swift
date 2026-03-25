@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
     var auth: AuthManager
     @State private var showingPromptSettings = false
+    @State private var speechSessionID = UUID()
 
     var body: some View {
         NavigationStack {
@@ -56,6 +57,8 @@ struct HomeView: View {
 
             NavigationLink {
                 SpeechCaptureView(auth: auth)
+                    .id(speechSessionID)
+                    .onDisappear { speechSessionID = UUID() }
             } label: {
                 Label("録音を始める", systemImage: "mic.fill")
             }

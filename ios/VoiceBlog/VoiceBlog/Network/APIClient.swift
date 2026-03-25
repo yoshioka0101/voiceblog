@@ -64,7 +64,7 @@ actor APIClient {
         let baseURL = try baseURLResult.get()
         let normalizedPath = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         let url = baseURL.appendingPathComponent(normalizedPath)
-        var req = URLRequest(url: url)
+        var req = URLRequest(url: url, timeoutInterval: 30)
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.httpBody = body
@@ -79,8 +79,11 @@ actor APIClient {
 
         let (data, response): (Data, URLResponse)
         do {
+            print("[APIClient] sending \(method) \(url)")
             (data, response) = try await URLSession.shared.data(for: req)
+            print("[APIClient] received response for \(method) \(url)")
         } catch {
+            print("[APIClient] network error for \(method) \(url): \(error)")
             throw APIError.networkError(error)
         }
 
@@ -120,8 +123,14 @@ actor APIClient {
         token: String,
         body: Body
     ) async throws -> T {
-        let data = try encoder.encode(body)
-        return try await request(path: path, method: method, token: token, body: data)
+        let encoded = try encoder.encode(body)
+        let responseData = try await performRequest(path: path, method: method, token: token, body: encoded)
+
+        if T.self == EmptyResponse.self, responseData.isEmpty {
+            return EmptyResponse() as! T
+        }
+
+        return try decoder.decode(T.self, from: responseData)
     }
 
     func getMe(token: String) async throws -> User {

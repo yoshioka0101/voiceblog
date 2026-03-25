@@ -68,12 +68,10 @@ struct PromptRunComposerView: View {
                 if isRunning {
                     ProgressView()
                 } else {
-                    Button {
+                    Button("AIで要約") {
                         Task {
                             await runPrompt()
                         }
-                    } label: {
-                        Label("実行", systemImage: "sparkles")
                     }
                     .disabled(selectedPrompt == nil)
                 }

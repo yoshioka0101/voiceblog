@@ -4,6 +4,7 @@ struct SpeechCaptureView: View {
     let auth: AuthManager
 
     @State private var viewModel: SpeechCaptureViewModel
+    @State private var navigateToPromptRun = false
 
     init(auth: AuthManager) {
         self.auth = auth
@@ -16,9 +17,6 @@ struct SpeechCaptureView: View {
                 heroCard
                 transcriptCard
 
-                if let savedTranscription = viewModel.savedTranscription {
-                    savedCard(savedTranscription)
-                }
             }
             .padding(20)
         }
@@ -39,6 +37,16 @@ struct SpeechCaptureView: View {
         }
         .onDisappear {
             viewModel.cleanup()
+        }
+        .navigationDestination(isPresented: $navigateToPromptRun) {
+            if let transcription = viewModel.savedTranscription {
+                PromptRunComposerView(auth: auth, transcription: transcription)
+            }
+        }
+        .onChange(of: viewModel.savedTranscription?.id) {
+            if viewModel.savedTranscription != nil {
+                navigateToPromptRun = true
+            }
         }
     }
 
@@ -86,24 +94,33 @@ struct SpeechCaptureView: View {
                 .buttonStyle(AppPrimaryButtonStyle(tint: viewModel.isRecording ? .red : .teal))
                 .disabled(viewModel.isBusy && !viewModel.isRecording)
 
-                HStack(spacing: 12) {
-                    Button {
-                        Task {
-                            await viewModel.saveTranscription()
+                if viewModel.state == .saving {
+                    HStack {
+                        ProgressView()
+                        Text("保存しています…")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    HStack(spacing: 12) {
+                        Button {
+                            Task {
+                                await viewModel.saveTranscription()
+                            }
+                        } label: {
+                            Label("保存", systemImage: "square.and.arrow.down")
                         }
-                    } label: {
-                        Label("保存", systemImage: "square.and.arrow.down")
-                    }
-                    .buttonStyle(AppSecondaryButtonStyle(tint: .teal))
-                    .disabled(!viewModel.canSave)
+                        .buttonStyle(AppSecondaryButtonStyle(tint: .teal))
+                        .disabled(!viewModel.canSave)
 
-                    Button {
-                        viewModel.discardResult()
-                    } label: {
-                        Label("やり直す", systemImage: "arrow.counterclockwise")
+                        Button {
+                            viewModel.discardResult()
+                        } label: {
+                            Label("やり直す", systemImage: "arrow.counterclockwise")
+                        }
+                        .buttonStyle(AppSecondaryButtonStyle(tint: .orange))
+                        .disabled(viewModel.isBusy || viewModel.isRecording)
                     }
-                    .buttonStyle(AppSecondaryButtonStyle(tint: .orange))
-                    .disabled(viewModel.isBusy || viewModel.isRecording)
                 }
             }
         }
@@ -128,24 +145,6 @@ struct SpeechCaptureView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-        }
-    }
-
-    private func savedCard(_ transcription: Transcription) -> some View {
-        AppSurface(accent: .green) {
-            Text("文字起こしを保存しました")
-                .font(.headline)
-
-            Text("続けて AI で記事の下書きを作成できます。")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            NavigationLink {
-                PromptRunComposerView(auth: auth, transcription: transcription)
-            } label: {
-                Label("AI で記事を作成", systemImage: "sparkles")
-            }
-            .buttonStyle(AppPrimaryButtonStyle(tint: .green))
         }
     }
 

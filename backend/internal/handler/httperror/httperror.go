@@ -2,6 +2,7 @@ package httperror
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -29,10 +30,24 @@ func Handle(c *gin.Context, err error, fallback Rule, rules ...Rule) {
 func FromError(c *gin.Context, err error, fallbackMessage string) {
 	var appErr *apperr.AppError
 	if errors.As(err, &appErr) {
+		if appErr.Status >= http.StatusInternalServerError {
+			slog.Error("app error",
+				"error", err.Error(),
+				"status", appErr.Status,
+				"method", c.Request.Method,
+				"path", c.Request.URL.Path,
+			)
+		}
 		JSON(c, appErr.Status, appErr.Message)
 		return
 	}
 
+	slog.Error("internal server error",
+		"error", err.Error(),
+		"method", c.Request.Method,
+		"path", c.Request.URL.Path,
+		"message", fallbackMessage,
+	)
 	JSON(c, http.StatusInternalServerError, fallbackMessage)
 }
 

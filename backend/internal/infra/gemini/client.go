@@ -3,14 +3,23 @@ package gemini
 import (
 	"bytes"
 	"context"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
+	"text/template"
 	"time"
 
 	promptrunjobusecase "github.com/yoshioka0101/voiceblog/backend/internal/usecase/promptrunjob"
+)
+
+//go:embed prompts/*.ptml
+var promptFS embed.FS
+
+var generateArticleTmpl = template.Must(
+	template.ParseFS(promptFS, "prompts/generate_article.ptml"),
 )
 
 const defaultModel = "gemini-2.0-flash"
@@ -38,7 +47,12 @@ func (c *Client) GenerateArticle(ctx context.Context, input promptrunjobusecase.
 		return nil, fmt.Errorf("gemini api key is required")
 	}
 
-	requestBody, err := json.Marshal(buildGenerateRequest(input))
+	req, err := buildGenerateRequest(input)
+	if err != nil {
+		return nil, err
+	}
+
+	requestBody, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("marshal gemini request: %w", err)
 	}
@@ -113,41 +127,24 @@ type generatedArticlePayload struct {
 	Content string `json:"content"`
 }
 
-func buildGenerateRequest(input promptrunjobusecase.GenerateArticleInput) generateContentRequest {
-	prompt := fmt.Sprintf(`あなたは voiceblog の記事作成アシスタントです。
-以下の指示と文字起こしをもとに、日本語の記事を JSON で返してください。
-
-返却形式:
-{"title":"記事タイトル","content":"記事本文"}
-
-制約:
-- title は 40 文字以内
-- content は Markdown で返す
-- 見出し、段落、箇条書きを必要に応じて使う
-- 読みやすい段落構成にする
-- 事実の追加創作はしない
-
-prompt 名:
-%s
-
-prompt 本文:
-%s
-
-文字起こし:
-%s`, input.PromptName, input.PromptBody, input.FullText)
+func buildGenerateRequest(input promptrunjobusecase.GenerateArticleInput) (generateContentRequest, error) {
+	var buf bytes.Buffer
+	if err := generateArticleTmpl.ExecuteTemplate(&buf, "generate_article.ptml", input); err != nil {
+		return generateContentRequest{}, fmt.Errorf("execute prompt template: %w", err)
+	}
 
 	return generateContentRequest{
 		Contents: []content{
 			{
 				Parts: []part{
-					{Text: prompt},
+					{Text: buf.String()},
 				},
 			},
 		},
 		GenerationConfig: generationConfig{
 			ResponseMIMEType: "application/json",
 		},
-	}
+	}, nil
 }
 
 func (r generateContentResponse) firstText() string {

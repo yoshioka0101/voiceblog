@@ -10,10 +10,15 @@ struct ArticleDetailView: View {
     @State private var showingDeleteConfirmation = false
     @State private var isDeleting = false
     @State private var errorMessage: String?
+    @State private var showCopiedToast = false
 
     init(auth: AuthManager, article: Article) {
         self.auth = auth
         _article = State(initialValue: article)
+    }
+
+    private var markdownText: String {
+        "# \(article.title)\n\n\(article.content)"
     }
 
     var body: some View {
@@ -47,6 +52,37 @@ struct ArticleDetailView: View {
                     Text(article.content)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .textSelection(.enabled)
+                }
+
+                AppSurface(accent: .teal) {
+                    Text("Markdown 共有")
+                        .font(.headline)
+
+                    HStack(spacing: 12) {
+                        Button {
+                            UIPasteboard.general.string = markdownText
+                            showCopiedToast = true
+                            Task {
+                                try? await Task.sleep(for: .seconds(2))
+                                showCopiedToast = false
+                            }
+                        } label: {
+                            Label("コピー", systemImage: "doc.on.doc")
+                        }
+                        .buttonStyle(AppSecondaryButtonStyle(tint: .teal))
+
+                        ShareLink(item: markdownText) {
+                            Label("共有", systemImage: "square.and.arrow.up")
+                        }
+                        .buttonStyle(AppSecondaryButtonStyle(tint: .indigo))
+                    }
+
+                    if showCopiedToast {
+                        Text("Markdown をコピーしました")
+                            .font(.subheadline)
+                            .foregroundStyle(.teal)
+                            .transition(.opacity)
+                    }
                 }
             }
             .padding(20)

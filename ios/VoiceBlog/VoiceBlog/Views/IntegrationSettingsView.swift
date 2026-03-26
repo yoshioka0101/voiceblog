@@ -13,6 +13,7 @@ struct IntegrationSettingsView: View {
     @State private var showRemoveConfirmation = false
     @State private var removeProvider: String?
     @State private var savedProvider: String?
+    @State private var showToken = false
 
     var body: some View {
         ScrollView {
@@ -188,10 +189,26 @@ struct IntegrationSettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             tokenGuide(for: provider)
 
-            SecureField(tokenPlaceholder(for: provider), text: $tokenInput)
+            HStack {
+                Group {
+                    if showToken {
+                        TextField(tokenPlaceholder(for: provider), text: $tokenInput)
+                    } else {
+                        SecureField(tokenPlaceholder(for: provider), text: $tokenInput)
+                    }
+                }
                 .textFieldStyle(.roundedBorder)
                 .textContentType(.password)
                 .autocorrectionDisabled()
+
+                Button {
+                    showToken.toggle()
+                } label: {
+                    Image(systemName: showToken ? "eye.slash" : "eye")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
 
             if isSaving {
                 HStack {

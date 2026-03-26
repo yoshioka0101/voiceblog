@@ -142,14 +142,14 @@ struct ArticleShareView: View {
 
     private var noConnectionGuide: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("外部サービスと連携すると、ここから直接記事を投稿できます。")
+            Text("Qiita やはてなブログのトークンを登録すると、ここから直接投稿できます。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
             NavigationLink {
                 IntegrationSettingsView(auth: auth)
             } label: {
-                Label("外部連携を設定する", systemImage: "gear")
+                Label("トークンを登録する", systemImage: "key.fill")
             }
             .buttonStyle(AppPrimaryButtonStyle(tint: .purple))
         }

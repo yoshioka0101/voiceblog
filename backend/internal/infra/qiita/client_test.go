@@ -51,6 +51,36 @@ func TestPublish(t *testing.T) {
 	}
 }
 
+func TestVerify(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/authenticated_user" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if r.Header.Get("Authorization") != "Bearer valid-token" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"id":"user123"}`))
+	}))
+	defer server.Close()
+
+	client := &Client{
+		baseURL:    server.URL,
+		httpClient: server.Client(),
+	}
+
+	// Valid token
+	if err := client.Verify(context.Background(), "valid-token"); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	// Invalid token
+	if err := client.Verify(context.Background(), "bad-token"); err == nil {
+		t.Fatal("expected error for invalid token")
+	}
+}
+
 func TestPublishError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)

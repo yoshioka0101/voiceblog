@@ -379,7 +379,10 @@ struct IntegrationSettingsView: View {
             switch apiError {
             case .unauthorized:
                 return "認証に失敗しました。再度ログインしてください。"
-            case .serverError(statusCode: 400, _):
+            case .serverError(statusCode: 400, let body):
+                if body.contains("verification failed") {
+                    return "\(name)への接続に失敗しました。トークンが正しいか確認してください。"
+                }
                 return "トークンの形式が正しくありません。\(name)の手順を確認してください。"
             default:
                 return "\(name)の\(action)に失敗しました。しばらくしてからもう一度お試しください。"

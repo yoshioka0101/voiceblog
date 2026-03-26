@@ -14,6 +14,11 @@ var supportedProviders = map[string]bool{
 	"hatena": true,
 }
 
+// Verifier checks whether a token is valid for a given provider.
+type Verifier interface {
+	Verify(ctx context.Context, token string) error
+}
+
 type IntegrationStatus struct {
 	Provider  string
 	Connected bool
@@ -22,12 +27,14 @@ type IntegrationStatus struct {
 type UseCase struct {
 	repo      entity.Repository
 	encryptor *crypto.AESEncryptor
+	verifiers map[string]Verifier
 }
 
-func NewUseCase(repo entity.Repository, encryptor *crypto.AESEncryptor) *UseCase {
+func NewUseCase(repo entity.Repository, encryptor *crypto.AESEncryptor, verifiers map[string]Verifier) *UseCase {
 	return &UseCase{
 		repo:      repo,
 		encryptor: encryptor,
+		verifiers: verifiers,
 	}
 }
 
@@ -37,6 +44,13 @@ func (uc *UseCase) StoreToken(ctx context.Context, userID int64, provider, plain
 	}
 	if plaintext == "" {
 		return apperr.BadRequest("token must not be empty")
+	}
+
+	// Verify token before storing
+	if v, ok := uc.verifiers[provider]; ok {
+		if err := v.Verify(ctx, plaintext); err != nil {
+			return apperr.BadRequest(fmt.Sprintf("token verification failed: %s", err.Error()))
+		}
 	}
 
 	ciphertext, nonce, err := uc.encryptor.Encrypt([]byte(plaintext))

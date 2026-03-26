@@ -62,6 +62,38 @@ func TestPublish(t *testing.T) {
 	}
 }
 
+func TestVerify(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/testuser/testblog/atom" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		wsse := r.Header.Get("X-WSSE")
+		if !strings.Contains(wsse, "testuser") {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`<?xml version="1.0" encoding="utf-8"?><service/>`))
+	}))
+	defer server.Close()
+
+	client := &Client{
+		baseURL:    server.URL,
+		httpClient: server.Client(),
+	}
+
+	// Valid token
+	if err := client.Verify(context.Background(), "testuser:testblog:testapikey"); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	// Invalid format
+	if err := client.Verify(context.Background(), "invalid-format"); err == nil {
+		t.Fatal("expected error for invalid token format")
+	}
+}
+
 func TestPublishInvalidToken(t *testing.T) {
 	client := NewClient()
 	_, err := client.Publish(context.Background(), "invalid-format", "Title", "Content")

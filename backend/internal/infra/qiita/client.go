@@ -46,6 +46,31 @@ type createItemResponse struct {
 	URL string `json:"url"`
 }
 
+// Verify checks if the token is valid by calling GET /authenticated_user.
+func (c *Client) Verify(ctx context.Context, token string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/authenticated_user", nil)
+	if err != nil {
+		return fmt.Errorf("build qiita verify request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request qiita verify: %w", err)
+	}
+	defer resp.Body.Close()
+	io.ReadAll(resp.Body)
+
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		return fmt.Errorf("invalid token: qiita returned status %d", resp.StatusCode)
+	}
+	if resp.StatusCode >= http.StatusBadRequest {
+		return fmt.Errorf("qiita verify failed: status %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
 func (c *Client) Publish(ctx context.Context, token, title, content string) (*PublishResult, error) {
 	reqBody := createItemRequest{
 		Title:   title,

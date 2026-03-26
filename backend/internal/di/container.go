@@ -86,12 +86,19 @@ func New(db *sql.DB, googleClientID, geminiAPIKey, tokenEncryptionKey string) *C
 	if tokenEncryptionKey != "" {
 		encryptor, err := crypto.NewAESEncryptor(tokenEncryptionKey)
 		if err == nil {
-			integrationUC := integrationUseCase.NewUseCase(repos.ExternalToken, encryptor)
+			qiitaClient := qiita.NewClient()
+			hatenaClient := hatena.NewClient()
+
+			verifiers := map[string]integrationUseCase.Verifier{
+				"qiita":  &qiitaVerifier{client: qiitaClient},
+				"hatena": &hatenaVerifier{client: hatenaClient},
+			}
+			integrationUC := integrationUseCase.NewUseCase(repos.ExternalToken, encryptor, verifiers)
 			useCases.Integration = integrationUC
 
 			publishers := map[string]publishUseCase.Publisher{
-				"qiita":  &qiitaAdapter{client: qiita.NewClient()},
-				"hatena": &hatenaAdapter{client: hatena.NewClient()},
+				"qiita":  &qiitaAdapter{client: qiitaClient},
+				"hatena": &hatenaAdapter{client: hatenaClient},
 			}
 			useCases.Publish = publishUseCase.NewUseCase(repos.Article, repos.ArticleShareTarget, integrationUC, publishers)
 		}
@@ -101,6 +108,22 @@ func New(db *sql.DB, googleClientID, geminiAPIKey, tokenEncryptionKey string) *C
 		Repositories: repos,
 		UseCases:     useCases,
 	}
+}
+
+type qiitaVerifier struct {
+	client *qiita.Client
+}
+
+func (v *qiitaVerifier) Verify(ctx context.Context, token string) error {
+	return v.client.Verify(ctx, token)
+}
+
+type hatenaVerifier struct {
+	client *hatena.Client
+}
+
+func (v *hatenaVerifier) Verify(ctx context.Context, token string) error {
+	return v.client.Verify(ctx, token)
 }
 
 type qiitaAdapter struct {

@@ -32,6 +32,39 @@ func NewClient() *Client {
 	}
 }
 
+// Verify checks if the token is valid by fetching the AtomPub service document.
+// token format: "hatenaID:blogID:apiKey"
+func (c *Client) Verify(ctx context.Context, token string) error {
+	parts := strings.SplitN(token, ":", 3)
+	if len(parts) != 3 {
+		return fmt.Errorf("hatena token must be in format hatenaID:blogID:apiKey")
+	}
+	hatenaID, blogID, apiKey := parts[0], parts[1], parts[2]
+
+	url := fmt.Sprintf("%s/%s/%s/atom", c.baseURL, hatenaID, blogID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return fmt.Errorf("build hatena verify request: %w", err)
+	}
+	req.Header.Set("X-WSSE", buildWSSEHeader(hatenaID, apiKey))
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request hatena verify: %w", err)
+	}
+	defer resp.Body.Close()
+	io.ReadAll(resp.Body)
+
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		return fmt.Errorf("invalid token: hatena returned status %d", resp.StatusCode)
+	}
+	if resp.StatusCode >= http.StatusBadRequest {
+		return fmt.Errorf("hatena verify failed: status %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
 // token format: "hatenaID:blogID:apiKey"
 func (c *Client) Publish(ctx context.Context, token, title, content string) (*PublishResult, error) {
 	parts := strings.SplitN(token, ":", 3)

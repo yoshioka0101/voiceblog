@@ -9,28 +9,20 @@ struct IntegrationSettingsView: View {
     @State private var editingProvider: String?
     @State private var tokenInput = ""
     @State private var isSaving = false
+    @State private var featureUnavailable = false
+    @State private var showRemoveConfirmation = false
+    @State private var removeProvider: String?
+    @State private var savedProvider: String?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                AppSurface(accent: .purple) {
-                    Label("外部連携設定", systemImage: "link.badge.plus")
-                        .font(.title3.weight(.semibold))
+                headerCard
 
-                    Text("外部ブログサービスの API トークンを設定すると、記事を直接投稿できます。")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                if isLoading && integrations.isEmpty {
-                    AppSurface(accent: .gray) {
-                        HStack {
-                            ProgressView()
-                            Text("読み込み中…")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
+                if featureUnavailable {
+                    unavailableCard
+                } else if isLoading && integrations.isEmpty {
+                    loadingCard
                 } else {
                     ForEach(integrations) { integration in
                         providerCard(integration)
@@ -51,11 +43,23 @@ struct IntegrationSettingsView: View {
             await loadIntegrations()
         }
         .alert("エラー", isPresented: isShowingError) {
-            Button("閉じる", role: .cancel) {
-                errorMessage = nil
-            }
+            Button("閉じる", role: .cancel) { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "")
+        }
+        .confirmationDialog(
+            "\(providerDisplayName(removeProvider ?? ""))の連携を解除しますか？",
+            isPresented: $showRemoveConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("解除する", role: .destructive) {
+                if let provider = removeProvider {
+                    Task { await removeToken(provider: provider) }
+                }
+            }
+            Button("キャンセル", role: .cancel) {}
+        } message: {
+            Text("保存済みのトークンが削除されます。再度投稿するにはトークンを設定し直す必要があります。")
         }
     }
 
@@ -66,6 +70,42 @@ struct IntegrationSettingsView: View {
         )
     }
 
+    // MARK: - Cards
+
+    private var headerCard: some View {
+        AppSurface(accent: .purple) {
+            Label("外部ブログへの投稿", systemImage: "link.badge.plus")
+                .font(.title3.weight(.semibold))
+
+            Text("Qiita やはてなブログのアクセストークンを登録すると、VoiceBlog で作成した記事をそのまま投稿できます。")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var unavailableCard: some View {
+        AppSurface(accent: .orange) {
+            Label("現在利用できません", systemImage: "exclamationmark.triangle")
+                .font(.headline)
+                .foregroundStyle(.orange)
+
+            Text("外部連携機能はサーバー管理者が有効にする必要があります。管理者にお問い合わせください。")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var loadingCard: some View {
+        AppSurface(accent: .gray) {
+            HStack {
+                ProgressView()
+                Text("読み込み中…")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
     @ViewBuilder
     private func providerCard(_ integration: Integration) -> some View {
         AppSurface(accent: integration.connected ? .green : .gray) {
@@ -73,66 +113,169 @@ struct IntegrationSettingsView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(providerDisplayName(integration.provider))
                         .font(.headline)
-                    Text(integration.connected ? "接続済み" : "未接続")
-                        .font(.subheadline)
-                        .foregroundStyle(integration.connected ? .green : .secondary)
+
+                    if integration.connected {
+                        Label("接続済み", systemImage: "checkmark.circle.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(.green)
+                    } else {
+                        Text("未接続")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 Spacer()
-
-                AppTag(title: integration.connected ? "接続済み" : "未接続",
-                       tint: integration.connected ? .green : .gray)
             }
 
             if editingProvider == integration.provider {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(tokenHint(for: integration.provider))
-                        .font(.caption)
+                tokenEditSection(provider: integration.provider)
+            } else if integration.connected {
+                connectedActions(provider: integration.provider)
+            } else {
+                disconnectedGuide(provider: integration.provider)
+            }
+
+            if savedProvider == integration.provider {
+                Label("トークンを保存しました", systemImage: "checkmark.circle.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(.green)
+                    .transition(.opacity)
+            }
+        }
+    }
+
+    // MARK: - Provider Sections
+
+    @ViewBuilder
+    private func disconnectedGuide(provider: String) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            tokenGuide(for: provider)
+
+            Button {
+                editingProvider = provider
+                tokenInput = ""
+            } label: {
+                Label("トークンを登録する", systemImage: "key.fill")
+            }
+            .buttonStyle(AppPrimaryButtonStyle(tint: .purple))
+        }
+    }
+
+    @ViewBuilder
+    private func connectedActions(provider: String) -> some View {
+        HStack(spacing: 12) {
+            Button {
+                editingProvider = provider
+                tokenInput = ""
+            } label: {
+                Label("トークンを変更", systemImage: "key")
+            }
+            .buttonStyle(AppSecondaryButtonStyle(tint: .purple))
+
+            Button {
+                removeProvider = provider
+                showRemoveConfirmation = true
+            } label: {
+                Label("解除", systemImage: "xmark.circle")
+            }
+            .buttonStyle(AppSecondaryButtonStyle(tint: .red))
+        }
+    }
+
+    @ViewBuilder
+    private func tokenEditSection(provider: String) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            tokenGuide(for: provider)
+
+            SecureField(tokenPlaceholder(for: provider), text: $tokenInput)
+                .textFieldStyle(.roundedBorder)
+                .textContentType(.password)
+                .autocorrectionDisabled()
+
+            if isSaving {
+                HStack {
+                    ProgressView()
+                    Text("保存しています…")
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
-
-                    SecureField("API トークン", text: $tokenInput)
-                        .textFieldStyle(.roundedBorder)
-
-                    HStack(spacing: 12) {
-                        Button {
-                            Task { await saveToken(provider: integration.provider) }
-                        } label: {
-                            Label("保存", systemImage: "checkmark.circle")
-                        }
-                        .buttonStyle(AppPrimaryButtonStyle(tint: .purple))
-                        .disabled(tokenInput.isEmpty || isSaving)
-
-                        Button {
-                            editingProvider = nil
-                            tokenInput = ""
-                        } label: {
-                            Text("キャンセル")
-                        }
-                        .buttonStyle(AppSecondaryButtonStyle(tint: .gray))
-                    }
                 }
             } else {
                 HStack(spacing: 12) {
                     Button {
-                        editingProvider = integration.provider
+                        Task { await saveToken(provider: provider) }
+                    } label: {
+                        Label("保存", systemImage: "checkmark.circle")
+                    }
+                    .buttonStyle(AppPrimaryButtonStyle(tint: .purple))
+                    .disabled(tokenInput.isEmpty)
+
+                    Button {
+                        editingProvider = nil
                         tokenInput = ""
                     } label: {
-                        Label(integration.connected ? "トークン変更" : "トークン設定", systemImage: "key")
+                        Text("キャンセル")
                     }
-                    .buttonStyle(AppSecondaryButtonStyle(tint: .purple))
-
-                    if integration.connected {
-                        Button {
-                            Task { await removeToken(provider: integration.provider) }
-                        } label: {
-                            Label("解除", systemImage: "trash")
-                        }
-                        .buttonStyle(AppSecondaryButtonStyle(tint: .red))
-                    }
+                    .buttonStyle(AppSecondaryButtonStyle(tint: .gray))
                 }
             }
         }
     }
+
+    @ViewBuilder
+    private func tokenGuide(for provider: String) -> some View {
+        switch provider {
+        case "qiita":
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Qiita のトークン取得手順")
+                    .font(.subheadline.weight(.medium))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("1. Qiita にログインする")
+                    Text("2. 設定 → アプリケーション を開く")
+                    Text("3.「個人用アクセストークン」の「新しくトークンを発行する」を押す")
+                    Text("4. スコープは「write_qiita」にチェック")
+                    Text("5. 発行されたトークンをコピーしてここに貼り付ける")
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+                Link(destination: URL(string: "https://qiita.com/settings/tokens/new")!) {
+                    Label("Qiita のトークン発行ページを開く", systemImage: "safari")
+                        .font(.caption)
+                }
+            }
+
+        case "hatena":
+            VStack(alignment: .leading, spacing: 6) {
+                Text("はてなブログのトークン取得手順")
+                    .font(.subheadline.weight(.medium))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("1. はてなブログの管理画面 → 設定 → 詳細設定 を開く")
+                    Text("2.「AtomPub」セクションの API キーを確認する")
+                    Text("3. 下記の形式でまとめて入力する:")
+                    Text("   はてなID:ブログID:APIキー")
+                        .font(.caption.monospaced())
+                    Text("   例: tanaka:tanaka-blog:abc123xyz")
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.orange)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+                Link(destination: URL(string: "https://blog.hatena.ne.jp/my/config/detail")!) {
+                    Label("はてなブログの詳細設定を開く", systemImage: "safari")
+                        .font(.caption)
+                }
+            }
+
+        default:
+            EmptyView()
+        }
+    }
+
+    // MARK: - Actions
 
     @MainActor
     private func loadIntegrations() async {
@@ -142,6 +285,8 @@ struct IntegrationSettingsView: View {
         do {
             let token = try await auth.fetchIDToken()
             integrations = try await APIClient.shared.getIntegrations(token: token)
+        } catch let error as APIError where error == .notFound {
+            featureUnavailable = true
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -161,9 +306,14 @@ struct IntegrationSettingsView: View {
             )
             editingProvider = nil
             tokenInput = ""
+            savedProvider = provider
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                if savedProvider == provider { savedProvider = nil }
+            }
             await loadIntegrations()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = userFacingMessage(for: error, provider: provider, action: "保存")
         }
     }
 
@@ -174,9 +324,11 @@ struct IntegrationSettingsView: View {
             try await APIClient.shared.deleteToken(provider: provider, token: token)
             await loadIntegrations()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = userFacingMessage(for: error, provider: provider, action: "解除")
         }
     }
+
+    // MARK: - Helpers
 
     private func providerDisplayName(_ provider: String) -> String {
         switch provider {
@@ -186,11 +338,38 @@ struct IntegrationSettingsView: View {
         }
     }
 
-    private func tokenHint(for provider: String) -> String {
+    private func tokenPlaceholder(for provider: String) -> String {
         switch provider {
-        case "qiita": return "Qiita の設定 → アプリケーション → 個人用アクセストークンを発行してください"
-        case "hatena": return "はてなID:ブログID:APIキー の形式で入力してください"
-        default: return "API トークンを入力してください"
+        case "qiita": return "Qiita のアクセストークンを貼り付け"
+        case "hatena": return "はてなID:ブログID:APIキー"
+        default: return "トークンを入力"
+        }
+    }
+
+    private func userFacingMessage(for error: Error, provider: String, action: String) -> String {
+        let name = providerDisplayName(provider)
+        if let apiError = error as? APIError {
+            switch apiError {
+            case .unauthorized:
+                return "認証に失敗しました。再度ログインしてください。"
+            case .serverError(statusCode: 400, _):
+                return "トークンの形式が正しくありません。\(name)の手順を確認してください。"
+            default:
+                return "\(name)の\(action)に失敗しました。しばらくしてからもう一度お試しください。"
+            }
+        }
+        return "\(name)の\(action)に失敗しました。ネットワーク接続を確認してください。"
+    }
+}
+
+extension APIError: Equatable {
+    static func == (lhs: APIError, rhs: APIError) -> Bool {
+        switch (lhs, rhs) {
+        case (.unauthorized, .unauthorized): return true
+        case (.notFound, .notFound): return true
+        case (.invalidConfiguration(let a), .invalidConfiguration(let b)): return a == b
+        case (.serverError(let a1, let a2), .serverError(let b1, let b2)): return a1 == b1 && a2 == b2
+        default: return false
         }
     }
 }

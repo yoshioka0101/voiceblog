@@ -3,19 +3,25 @@ import Foundation
 enum APIError: LocalizedError {
     case unauthorized
     case invalidConfiguration(String)
+    case notFound
     case serverError(statusCode: Int, body: String)
     case networkError(Error)
 
     var errorDescription: String? {
         switch self {
         case .unauthorized:
-            return "認証に失敗しました"
+            return "認証に失敗しました。再度ログインしてください。"
         case .invalidConfiguration(let message):
             return message
-        case .serverError(let code, let body):
-            return "サーバーエラー (\(code)): \(body)"
-        case .networkError(let error):
-            return error.localizedDescription
+        case .notFound:
+            return "この機能はまだ利用できません。"
+        case .serverError(let code, _):
+            if code == 400 {
+                return "入力内容に問題があります。内容を確認してください。"
+            }
+            return "サーバーで問題が発生しました。しばらくしてからもう一度お試しください。"
+        case .networkError:
+            return "通信に失敗しました。ネットワーク接続を確認してください。"
         }
     }
 }
@@ -96,6 +102,8 @@ actor APIClient {
             return data
         case 401:
             throw APIError.unauthorized
+        case 404:
+            throw APIError.notFound
         default:
             let body = String(data: data, encoding: .utf8) ?? ""
             throw APIError.serverError(statusCode: http.statusCode, body: body)

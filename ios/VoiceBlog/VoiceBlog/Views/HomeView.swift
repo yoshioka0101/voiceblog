@@ -76,28 +76,19 @@ struct HomeView: View {
 
     private var manualArticleWorkflowCard: some View {
         AppSurface(accent: .indigo) {
-            Label("手動で記事を生成", systemImage: "square.and.pencil")
+            Label("記事の管理", systemImage: "doc.text")
                 .font(.title3.weight(.semibold))
 
-            Text("タイトルと本文を直接書いて保存できます。AI 生成記事と同じ一覧であとから編集できます。")
+            Text("AI で生成した記事も手動で作成した記事も、まとめて確認・編集できます。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
-            HStack(spacing: 12) {
-                NavigationLink {
-                    ArticleListView(auth: auth, entryPoint: .create)
-                } label: {
-                    Label("手動作成", systemImage: "square.and.pencil")
-                }
-                .buttonStyle(AppPrimaryButtonStyle(tint: .indigo))
-
-                NavigationLink {
-                    ArticleListView(auth: auth)
-                } label: {
-                    Label("記事一覧", systemImage: "text.document")
-                }
-                .buttonStyle(AppSecondaryButtonStyle(tint: .indigo))
+            NavigationLink {
+                ArticleListView(auth: auth)
+            } label: {
+                Label("記事一覧", systemImage: "text.document")
             }
+            .buttonStyle(AppPrimaryButtonStyle(tint: .indigo))
         }
     }
 

@@ -1,19 +1,12 @@
 import SwiftUI
 
 struct ArticleListView: View {
-    enum EntryPoint {
-        case list
-        case create
-    }
-
     var auth: AuthManager
-    var entryPoint: EntryPoint = .list
 
     @State private var articles: [Article] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showingCreateSheet = false
-    @State private var didApplyEntryPoint = false
 
     var body: some View {
         ScrollView {
@@ -78,7 +71,6 @@ struct ArticleListView: View {
         }
         .task {
             await loadArticles()
-            applyEntryPointIfNeeded()
         }
         .onAppear {
             Task {
@@ -99,17 +91,6 @@ struct ArticleListView: View {
             }
         } message: {
             Text(errorMessage ?? "")
-        }
-        .safeAreaInset(edge: .bottom) {
-            Button {
-                showingCreateSheet = true
-            } label: {
-                Label("記事を追加", systemImage: "square.and.pencil")
-            }
-            .buttonStyle(AppPrimaryButtonStyle(tint: .indigo))
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .background(.thinMaterial)
         }
     }
 
@@ -134,18 +115,6 @@ struct ArticleListView: View {
                 .foregroundStyle(.secondary)
 
             AppTag(title: "\(articles.count) 件", tint: .indigo)
-        }
-    }
-
-    @MainActor
-    private func applyEntryPointIfNeeded() {
-        guard !didApplyEntryPoint else {
-            return
-        }
-
-        didApplyEntryPoint = true
-        if entryPoint == .create {
-            showingCreateSheet = true
         }
     }
 

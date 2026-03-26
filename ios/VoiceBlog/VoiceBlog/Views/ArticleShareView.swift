@@ -13,16 +13,22 @@ struct ArticleShareView: View {
     @State private var errorMessage: String?
     @State private var showPublishConfirmation = false
     @State private var confirmProvider: String?
+    @State private var featureUnavailable = false
+    @State private var publishedProvider: String?
 
     private var markdownText: String {
         "# \(article.title)\n\n\(article.content)"
+    }
+
+    private var connectedIntegrations: [Integration] {
+        integrations.filter(\.connected)
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 markdownSection
-                publishSection
+                externalPublishSection
             }
             .padding(20)
         }
@@ -53,6 +59,8 @@ struct ArticleShareView: View {
                 }
             }
             Button("キャンセル", role: .cancel) {}
+        } message: {
+            Text("記事がそのまま公開されます。投稿前に内容を確認してください。")
         }
     }
 
@@ -63,12 +71,14 @@ struct ArticleShareView: View {
         )
     }
 
+    // MARK: - Markdown Section
+
     private var markdownSection: some View {
         AppSurface(accent: .teal) {
-            Text("Markdown 共有")
+            Label("Markdown で共有", systemImage: "doc.text")
                 .font(.headline)
 
-            Text("任意のブログやエディタに貼り付けられます。")
+            Text("コピーして任意のブログやエディタに貼り付けられます。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
@@ -92,7 +102,7 @@ struct ArticleShareView: View {
             }
 
             if showCopiedToast {
-                Text("Markdown をコピーしました")
+                Label("Markdown をコピーしました", systemImage: "checkmark.circle.fill")
                     .font(.subheadline)
                     .foregroundStyle(.teal)
                     .transition(.opacity)
@@ -100,27 +110,48 @@ struct ArticleShareView: View {
         }
     }
 
-    private var publishSection: some View {
-        AppSurface(accent: .purple) {
-            Text("外部サービスに投稿")
-                .font(.headline)
+    // MARK: - External Publish Section
 
-            if isLoading {
-                HStack {
-                    ProgressView()
-                    Text("読み込み中…")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-            } else if integrations.isEmpty {
-                Text("外部連携が設定されていません。ホーム画面のメニューから外部連携設定を行ってください。")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(integrations) { integration in
-                    providerRow(integration)
+    @ViewBuilder
+    private var externalPublishSection: some View {
+        if featureUnavailable {
+            // 管理者が TOKEN_ENCRYPTION_KEY を設定していない場合
+            EmptyView()
+        } else {
+            AppSurface(accent: .purple) {
+                Label("外部サービスに投稿", systemImage: "paperplane")
+                    .font(.headline)
+
+                if isLoading {
+                    HStack {
+                        ProgressView()
+                        Text("読み込み中…")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                } else if connectedIntegrations.isEmpty {
+                    noConnectionGuide
+                } else {
+                    ForEach(connectedIntegrations) { integration in
+                        providerRow(integration)
+                    }
                 }
             }
+        }
+    }
+
+    private var noConnectionGuide: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("外部サービスと連携すると、ここから直接記事を投稿できます。")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            NavigationLink {
+                IntegrationSettingsView(auth: auth)
+            } label: {
+                Label("外部連携を設定する", systemImage: "gear")
+            }
+            .buttonStyle(AppPrimaryButtonStyle(tint: .purple))
         }
     }
 
@@ -135,46 +166,49 @@ struct ArticleShareView: View {
 
                 Spacer()
 
-                if !integration.connected {
-                    AppTag(title: "未接続", tint: .gray)
-                } else if existingTarget != nil {
+                if existingTarget != nil {
                     AppTag(title: "投稿済み", tint: .green)
                 }
             }
 
-            if let target = existingTarget, !target.externalUrl.isEmpty {
-                Link(destination: URL(string: target.externalUrl)!) {
-                    Label(target.externalUrl, systemImage: "arrow.up.right.square")
-                        .font(.caption)
-                        .lineLimit(1)
+            if let target = existingTarget, !target.externalUrl.isEmpty,
+               let url = URL(string: target.externalUrl) {
+                Link(destination: url) {
+                    Label("投稿を確認する", systemImage: "arrow.up.right.square")
+                        .font(.subheadline)
                 }
             }
 
-            if integration.connected {
-                if publishingProvider == integration.provider {
-                    HStack {
-                        ProgressView()
-                        Text("投稿中…")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    Button {
-                        confirmProvider = integration.provider
-                        showPublishConfirmation = true
-                    } label: {
-                        Label(
-                            existingTarget != nil ? "再投稿" : "投稿",
-                            systemImage: "paperplane"
-                        )
-                    }
-                    .buttonStyle(AppSecondaryButtonStyle(tint: .purple))
-                    .disabled(isPublishing)
+            if publishedProvider == integration.provider {
+                Label("投稿しました", systemImage: "checkmark.circle.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(.green)
+                    .transition(.opacity)
+            } else if publishingProvider == integration.provider {
+                HStack {
+                    ProgressView()
+                    Text("投稿しています…")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
+            } else {
+                Button {
+                    confirmProvider = integration.provider
+                    showPublishConfirmation = true
+                } label: {
+                    Label(
+                        existingTarget != nil ? "再投稿する" : "投稿する",
+                        systemImage: "paperplane"
+                    )
+                }
+                .buttonStyle(AppSecondaryButtonStyle(tint: .purple))
+                .disabled(isPublishing)
             }
         }
         .padding(.vertical, 4)
     }
+
+    // MARK: - Actions
 
     @MainActor
     private func loadData() async {
@@ -183,10 +217,17 @@ struct ArticleShareView: View {
 
         do {
             let token = try await auth.fetchIDToken()
-            async let integrationsResult = APIClient.shared.getIntegrations(token: token)
-            async let targetsResult = APIClient.shared.getShareTargets(articleId: article.id, token: token)
-            integrations = try await integrationsResult.filter(\.connected)
-            shareTargets = try await targetsResult
+            // share-targets は常に取得可能（404 ではない）
+            // integrations は TOKEN_ENCRYPTION_KEY 未設定だと 404
+            do {
+                integrations = try await APIClient.shared.getIntegrations(token: token)
+            } catch let error as APIError where error == .notFound {
+                featureUnavailable = true
+            }
+
+            if !featureUnavailable {
+                shareTargets = try await APIClient.shared.getShareTargets(articleId: article.id, token: token)
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -213,8 +254,29 @@ struct ArticleShareView: View {
             } else {
                 shareTargets.append(target)
             }
+            publishedProvider = provider
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                if publishedProvider == provider { publishedProvider = nil }
+            }
         } catch {
-            errorMessage = error.localizedDescription
+            let name = providerDisplayName(provider)
+            if let apiError = error as? APIError {
+                switch apiError {
+                case .serverError(statusCode: 400, let body):
+                    if body.contains("not connected") {
+                        errorMessage = "\(name)のトークンが無効になっています。外部連携設定から再設定してください。"
+                    } else {
+                        errorMessage = "\(name)への投稿に失敗しました。トークンの設定を確認してください。"
+                    }
+                case .unauthorized:
+                    errorMessage = "認証に失敗しました。再度ログインしてください。"
+                default:
+                    errorMessage = "\(name)への投稿に失敗しました。しばらくしてからもう一度お試しください。"
+                }
+            } else {
+                errorMessage = "\(name)への投稿に失敗しました。ネットワーク接続を確認してください。"
+            }
         }
     }
 

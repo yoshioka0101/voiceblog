@@ -244,6 +244,11 @@ struct IntegrationSettingsView: View {
                     Label("Qiita のトークン発行ページを開く", systemImage: "safari")
                         .font(.caption)
                 }
+
+                Link(destination: URL(string: "https://qiita.com/maiamea/items/680cca06f7825595cba0")!) {
+                    Label("トークン発行の詳しい手順（Qiita 記事）", systemImage: "doc.text")
+                        .font(.caption)
+                }
             }
 
         case "hatena":
@@ -266,6 +271,11 @@ struct IntegrationSettingsView: View {
 
                 Link(destination: URL(string: "https://blog.hatena.ne.jp/my/config/detail")!) {
                     Label("はてなブログの詳細設定を開く", systemImage: "safari")
+                        .font(.caption)
+                }
+
+                Link(destination: URL(string: "https://qiita.com/Q_Udon/items/39716b1bddf3aaf2b132")!) {
+                    Label("はてなブログ API の詳しい手順（Qiita 記事）", systemImage: "doc.text")
                         .font(.caption)
                 }
             }

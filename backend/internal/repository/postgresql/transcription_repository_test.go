@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"reflect"
 	"testing"
 
 	entity "github.com/yoshioka0101/voiceblog/backend/internal/entity/transcription"
@@ -35,9 +36,7 @@ func TestCreateTranscription(t *testing.T) {
 	if value.FullText != "hello world" {
 		t.Fatalf("FullText = %q", value.FullText)
 	}
-	if string(value.SegmentsJSON) != `[{"text":"hello world"}]` {
-		t.Fatalf("SegmentsJSON = %s", string(value.SegmentsJSON))
-	}
+	assertJSONEqual(t, value.SegmentsJSON, json.RawMessage(`[{"text":"hello world"}]`))
 }
 
 func TestFindTranscriptionByID(t *testing.T) {
@@ -72,5 +71,23 @@ func TestFindTranscriptionByID_NotFound(t *testing.T) {
 	_, err := repo.FindTranscriptionByID(context.Background(), 99999)
 	if !errors.Is(err, transcriptionusecase.ErrNotFound) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
+	}
+}
+
+func assertJSONEqual(t *testing.T, got json.RawMessage, want json.RawMessage) {
+	t.Helper()
+
+	var gotValue any
+	if err := json.Unmarshal(got, &gotValue); err != nil {
+		t.Fatalf("failed to unmarshal got JSON: %v", err)
+	}
+
+	var wantValue any
+	if err := json.Unmarshal(want, &wantValue); err != nil {
+		t.Fatalf("failed to unmarshal want JSON: %v", err)
+	}
+
+	if !reflect.DeepEqual(gotValue, wantValue) {
+		t.Fatalf("SegmentsJSON = %s, want %s", string(got), string(want))
 	}
 }

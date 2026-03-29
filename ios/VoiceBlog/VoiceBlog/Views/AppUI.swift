@@ -104,3 +104,43 @@ func copyTextToPasteboard(_ text: String) {
     NSPasteboard.general.setString(text, forType: .string)
     #endif
 }
+
+extension Notification.Name {
+    static let returnToHome = Notification.Name("voiceblog.returnToHome")
+}
+
+@MainActor
+func requestReturnToHome() {
+    NotificationCenter.default.post(name: .returnToHome, object: nil)
+}
+
+private struct HomeNavigationToolbarModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content.toolbar {
+            #if os(macOS)
+            ToolbarItem(placement: .navigation) {
+                homeButton
+            }
+            #else
+            ToolbarItem(placement: .topBarLeading) {
+                homeButton
+            }
+            #endif
+        }
+    }
+
+    private var homeButton: some View {
+        Button {
+            requestReturnToHome()
+        } label: {
+            Image(systemName: "house.fill")
+        }
+        .accessibilityLabel("ホームに戻る")
+    }
+}
+
+extension View {
+    func homeNavigationToolbar() -> some View {
+        modifier(HomeNavigationToolbarModifier())
+    }
+}

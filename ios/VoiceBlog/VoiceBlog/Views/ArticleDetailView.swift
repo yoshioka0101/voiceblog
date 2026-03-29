@@ -102,6 +102,7 @@ struct ArticleDetailView: View {
             )
         )
         .navigationTitle("記事詳細")
+        .homeNavigationToolbar()
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button("編集") {

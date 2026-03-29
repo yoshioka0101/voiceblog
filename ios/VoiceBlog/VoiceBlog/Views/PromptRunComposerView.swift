@@ -41,6 +41,7 @@ struct PromptRunComposerView: View {
             )
         )
         .navigationTitle("AI 記事生成")
+        .homeNavigationToolbar()
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 if isGenerating {
@@ -250,6 +251,7 @@ private struct GeneratedArticlePreviewView: View {
             )
         )
         .navigationTitle("生成結果")
+        .homeNavigationToolbar()
         .navigationDestination(isPresented: $showSavedArticle) {
             if let createdArticle {
                 ArticleDetailView(auth: auth, article: createdArticle)

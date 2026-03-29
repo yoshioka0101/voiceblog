@@ -40,6 +40,7 @@ struct IntegrationSettingsView: View {
             )
         )
         .navigationTitle("外部連携")
+        .homeNavigationToolbar()
         .task {
             await loadIntegrations()
         }

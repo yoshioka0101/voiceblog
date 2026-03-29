@@ -5,6 +5,7 @@ struct HomeView: View {
     @State private var showingPromptSettings = false
     @State private var showingIntegrationSettings = false
     @State private var speechSessionID = UUID()
+    @State private var navigationStackID = UUID()
 
     var body: some View {
         NavigationStack {
@@ -52,6 +53,18 @@ struct HomeView: View {
                 IntegrationSettingsView(auth: auth)
             }
         }
+        .id(navigationStackID)
+        .onReceive(NotificationCenter.default.publisher(for: .returnToHome)) { _ in
+            resetNavigation()
+        }
+    }
+
+    @MainActor
+    private func resetNavigation() {
+        showingPromptSettings = false
+        showingIntegrationSettings = false
+        speechSessionID = UUID()
+        navigationStackID = UUID()
     }
 
     private var audioArticleWorkflowCard: some View {

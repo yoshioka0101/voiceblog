@@ -40,6 +40,7 @@ struct ArticleShareView: View {
             )
         )
         .navigationTitle("記事を共有")
+        .homeNavigationToolbar()
         .task {
             await loadData()
         }

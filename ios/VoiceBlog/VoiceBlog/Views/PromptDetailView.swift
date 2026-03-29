@@ -54,5 +54,6 @@ struct PromptDetailView: View {
             )
         )
         .navigationTitle("プロンプト詳細")
+        .homeNavigationToolbar()
     }
 }

@@ -52,6 +52,7 @@ struct ArticleListView: View {
             )
         )
         .navigationTitle("記事")
+        .homeNavigationToolbar()
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button {

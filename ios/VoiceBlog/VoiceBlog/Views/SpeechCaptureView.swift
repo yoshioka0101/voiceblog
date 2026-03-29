@@ -28,6 +28,7 @@ struct SpeechCaptureView: View {
             )
         )
         .navigationTitle("音声開始")
+        .homeNavigationToolbar()
         .alert("エラー", isPresented: isShowingError) {
             Button("閉じる", role: .cancel) {
                 viewModel.errorMessage = nil

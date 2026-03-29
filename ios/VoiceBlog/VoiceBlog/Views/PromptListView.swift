@@ -87,6 +87,7 @@ struct PromptListView: View {
             )
         )
         .navigationTitle("プロンプト")
+        .homeNavigationToolbar()
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button {

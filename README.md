@@ -77,6 +77,8 @@ make dev
 
 開発用 PostgreSQL はホスト側 `5433` 番ポートを使います。ローカルの別 PostgreSQL が `5432` を使っていても衝突しません。
 
+生成 AI 系の credential は backend の環境変数だけで管理します。iOS へ API key を埋め込まない運用を前提とし、Gemini 連携が必要になった時点で `GEMINI_API_KEY` の発行を依頼して設定します。
+
 #### 主な Make ターゲット
 
 | コマンド | 説明 |

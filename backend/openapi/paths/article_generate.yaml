@@ -1,0 +1,22 @@
+post:
+  summary: Generate article synchronously
+  operationId: generateArticle
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/article_generate_request.yaml
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/generated_article.yaml
+    "400":
+      description: Bad Request
+    "401":
+      description: Unauthorized

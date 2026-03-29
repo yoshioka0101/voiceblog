@@ -2,11 +2,29 @@ psql:
   schemas:
     - public
 
+plugins_preset: "none"
+plugins:
+  dbinfo:
+    disabled: true
+    pkgname: "dbinfo"
+    destination: "dbinfo"
+  models:
+    disabled: false
+    pkgname: "models"
+    destination: "models"
+  factory:
+    disabled: true
+    pkgname: "factory"
+    destination: "factory"
+  dberrors:
+    disabled: true
+    pkgname: "dberrors"
+    destination: "dberrors"
+  where:
+    disabled: false
+  loaders:
+    disabled: false
+  joins:
+    disabled: false
+
 no_tests: true
-
-models:
-  destination: "internal/infra/postgres/model"
-  pkgname: "model"
-
-factory:
-  disabled: true

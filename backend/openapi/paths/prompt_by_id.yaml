@@ -1,0 +1,54 @@
+patch:
+  summary: Update a user prompt
+  operationId: updatePrompt
+  security:
+    - bearerAuth: []
+  parameters:
+    - in: path
+      name: id
+      required: true
+      schema:
+        type: integer
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/prompt_update_request.yaml
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/prompt.yaml
+    "400":
+      description: Bad Request
+    "401":
+      description: Unauthorized
+    "403":
+      description: Forbidden
+    "404":
+      description: Not Found
+delete:
+  summary: Delete a user prompt
+  operationId: deletePrompt
+  security:
+    - bearerAuth: []
+  parameters:
+    - in: path
+      name: id
+      required: true
+      schema:
+        type: integer
+  responses:
+    "204":
+      description: No Content
+    "400":
+      description: Bad Request
+    "401":
+      description: Unauthorized
+    "403":
+      description: Forbidden
+    "404":
+      description: Not Found

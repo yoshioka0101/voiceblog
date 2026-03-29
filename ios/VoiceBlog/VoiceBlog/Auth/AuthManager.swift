@@ -7,7 +7,7 @@ import UIKit
 import AppKit
 #endif
 
-private enum AuthManagerError: LocalizedError {
+enum AuthManagerError: LocalizedError {
     case missingIDToken
     case invalidSession
     case missingPresentingWindow
@@ -15,11 +15,11 @@ private enum AuthManagerError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingIDToken:
-            return "IDトークンを取得できませんでした"
+            return "サインイン情報を取得できませんでした。もう一度お試しください。"
         case .invalidSession:
-            return "セッションが無効です。再ログインしてください。"
+            return "セッションの有効期限が切れました。再度ログインしてください。"
         case .missingPresentingWindow:
-            return "サインイン用のウィンドウが見つかりません"
+            return "サインイン画面を開けませんでした。もう一度お試しください。"
         }
     }
 }
@@ -47,7 +47,7 @@ final class AuthManager {
             googleSignIn.configuration = configuration
             configurationError = nil
         } catch {
-            let message = error.localizedDescription
+            let message = error.userFacingMessage(fallback: "サインイン設定に問題があります。管理者にお問い合わせください。")
             configurationError = message
             self.error = message
             return
@@ -80,6 +80,14 @@ final class AuthManager {
         googleSignIn.signOut()
         user = nil
         error = nil
+    }
+
+    func fetchIDToken() async throws -> String {
+        guard let currentUser = googleSignIn.currentUser else {
+            throw AuthManagerError.invalidSession
+        }
+
+        return try await refreshedIDToken(for: currentUser)
     }
 
     #if DEBUG
@@ -182,7 +190,7 @@ final class AuthManager {
         let token = try await refreshedIDToken(for: googleUser)
 
         do {
-            user = try await APIClient.shared.fetchMe(token: token)
+            user = try await APIClient.shared.getMe(token: token)
         } catch APIError.unauthorized {
             googleSignIn.signOut()
             user = nil
@@ -190,7 +198,7 @@ final class AuthManager {
         }
     }
 
-    private func refreshedIDToken(for googleUser: GIDGoogleUser) async throws -> String {
+    private nonisolated func refreshedIDToken(for googleUser: GIDGoogleUser) async throws -> String {
         let refreshedUser: GIDGoogleUser = try await withCheckedThrowingContinuation { continuation in
             googleUser.refreshTokensIfNeeded { user, error in
                 if let error {
@@ -220,12 +228,7 @@ final class AuthManager {
             return
         }
 
-        let nsError = error as NSError
-        #if DEBUG
-        self.error = "\(nsError.domain) (\(nsError.code)): \(nsError.localizedDescription)"
-        #else
-        self.error = nsError.localizedDescription
-        #endif
+        self.error = error.userFacingMessage(fallback: "Googleでのサインインに失敗しました。しばらくしてからもう一度お試しください。")
     }
 
     private func isUserCanceledSignIn(_ error: Error) -> Bool {

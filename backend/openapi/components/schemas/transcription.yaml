@@ -1,0 +1,28 @@
+type: object
+properties:
+  id:
+    type: integer
+    format: int64
+  user_id:
+    type: integer
+    format: int64
+  full_text:
+    type: string
+  segments_json:
+    type: array
+    items:
+      type: object
+      additionalProperties: true
+  created_at:
+    type: string
+    format: date-time
+  updated_at:
+    type: string
+    format: date-time
+required:
+  - id
+  - user_id
+  - full_text
+  - segments_json
+  - created_at
+  - updated_at

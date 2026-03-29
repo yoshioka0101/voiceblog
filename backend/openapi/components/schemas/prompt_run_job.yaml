@@ -1,0 +1,38 @@
+type: object
+properties:
+  id:
+    type: integer
+    format: int64
+  transcription_id:
+    type: integer
+    format: int64
+  prompt_id:
+    type: integer
+    format: int64
+  status:
+    type: string
+  attempt_count:
+    type: integer
+  next_run_at:
+    type: string
+    format: date-time
+  error_message:
+    type: string
+    nullable: true
+  generated_title:
+    type: string
+    nullable: true
+  generated_content:
+    type: string
+    nullable: true
+  created_at:
+    type: string
+    format: date-time
+required:
+  - id
+  - transcription_id
+  - prompt_id
+  - status
+  - attempt_count
+  - next_run_at
+  - created_at

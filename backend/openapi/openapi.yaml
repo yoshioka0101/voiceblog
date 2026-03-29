@@ -7,11 +7,55 @@ paths:
     $ref: ./paths/health.yaml
   /me:
     $ref: ./paths/me.yaml
+  /prompts:
+    $ref: ./paths/prompts.yaml
+  /prompts/{id}:
+    $ref: ./paths/prompt_by_id.yaml
+  /prompt-run-jobs:
+    $ref: ./paths/prompt_run_jobs.yaml
+  /prompt-run-jobs/{id}:
+    $ref: ./paths/prompt_run_job_by_id.yaml
+  /articles:
+    $ref: ./paths/articles.yaml
+  /articles/generate:
+    $ref: ./paths/article_generate.yaml
+  /articles/{id}:
+    $ref: ./paths/article_by_id.yaml
+  /transcriptions:
+    $ref: ./paths/transcriptions.yaml
 components:
   schemas:
+    ArticleResponse:
+      $ref: ./components/schemas/article.yaml
+    ArticlesResponse:
+      $ref: ./components/schemas/article_list_response.yaml
+    CreateArticleRequest:
+      $ref: ./components/schemas/article_create_request.yaml
+    GeneratedArticleResponse:
+      $ref: ./components/schemas/generated_article.yaml
+    GenerateArticleRequest:
+      $ref: ./components/schemas/article_generate_request.yaml
+    UpdateArticleRequest:
+      $ref: ./components/schemas/article_update_request.yaml
     HealthResponse:
       $ref: ./components/schemas/health.yaml
-    User:
+    PromptResponse:
+      $ref: ./components/schemas/prompt.yaml
+    PromptsResponse:
+      $ref: ./components/schemas/prompt_list_response.yaml
+    PromptRunJobResponse:
+      $ref: ./components/schemas/prompt_run_job.yaml
+    CreatePromptRunJobRequest:
+      $ref: ./components/schemas/prompt_run_job_create_request.yaml
+    CreatePromptRequest:
+      $ref: ./components/schemas/prompt_create_request.yaml
+    UpdatePromptRequest:
+      $ref: ./components/schemas/prompt_update_request.yaml
+    TranscriptionResponse:
+      $ref: ./components/schemas/transcription.yaml
+    CreateTranscriptionRequest:
+      $ref: ./components/schemas/transcription_create_request.yaml
+    UserResponse:
       $ref: ./components/schemas/user.yaml
   securitySchemes:
     bearerAuth:

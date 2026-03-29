@@ -3,8 +3,10 @@ package testutil
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"testing"
 	"time"
 
@@ -19,17 +21,25 @@ import (
 // テスト終了時にコンテナは自動破棄される。
 func SetupTestDB(t *testing.T) *sql.DB {
 	t.Helper()
+	testcontainers.SkipIfProviderIsNotHealthy(t)
 
 	ctx := context.Background()
 
-	migrationPath := filepath.Join(projectRoot(), "migrations", "migrations", "20260320_create_users.sql")
+	migrationPaths, err := filepath.Glob(filepath.Join(projectRoot(), "migrations", "migrations", "*.sql"))
+	if err != nil {
+		t.Fatalf("failed to list migrations: %v", err)
+	}
+	if len(migrationPaths) == 0 {
+		t.Fatal("no migrations found")
+	}
+	sort.Strings(migrationPaths)
 
 	pgContainer, err := postgres.Run(ctx,
 		"postgres:16-alpine",
 		postgres.WithDatabase("voiceblog_test"),
 		postgres.WithUsername("test"),
 		postgres.WithPassword("test"),
-		postgres.WithInitScripts(migrationPath),
+		postgres.WithInitScripts(migrationPaths...),
 		testcontainers.WithWaitStrategy(
 			wait.ForLog("database system is ready to accept connections").
 				WithOccurrence(2).
@@ -80,4 +90,107 @@ func projectRoot() string {
 	// filename = .../voiceblog/backend/internal/testutil/db.go
 	// backend の親がプロジェクトルート
 	return filepath.Join(filepath.Dir(filename), "..", "..", "..")
+}
+
+func SeedUser(t *testing.T, db *sql.DB, provider, subject, email, name string) int64 {
+	t.Helper()
+
+	const query = `
+		INSERT INTO users (auth_provider, auth_subject, email, name)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id
+	`
+
+	var id int64
+	if err := db.QueryRowContext(context.Background(), query, provider, subject, email, name).Scan(&id); err != nil {
+		t.Fatalf("failed to seed user: %v", err)
+	}
+
+	return id
+}
+
+func SeedPrompt(t *testing.T, db *sql.DB, userID *int64, name, body string, isActive, isDefault bool) int64 {
+	t.Helper()
+
+	const query = `
+		INSERT INTO prompts (user_id, name, body, is_active, is_default)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id
+	`
+
+	var id int64
+	var nullableUserID any
+	if userID != nil {
+		nullableUserID = *userID
+	}
+
+	if err := db.QueryRowContext(context.Background(), query, nullableUserID, name, body, isActive, isDefault).Scan(&id); err != nil {
+		t.Fatalf("failed to seed prompt: %v", err)
+	}
+
+	return id
+}
+
+func SeedTranscription(t *testing.T, db *sql.DB, userID int64, fullText, segmentsJSON string) int64 {
+	t.Helper()
+
+	const query = `
+		INSERT INTO transcriptions (user_id, full_text, segments_json)
+		VALUES ($1, $2, $3::jsonb)
+		RETURNING id
+	`
+
+	var id int64
+	if err := db.QueryRowContext(context.Background(), query, userID, fullText, segmentsJSON).Scan(&id); err != nil {
+		t.Fatalf("failed to seed transcription: %v", err)
+	}
+
+	return id
+}
+
+func SeedPromptRunJob(t *testing.T, db *sql.DB, transcriptionID, promptID int64, status string, attemptCount int, errorMessage, generatedTitle, generatedContent *string) int64 {
+	t.Helper()
+
+	const query = `
+		INSERT INTO prompt_run_jobs (transcription_id, prompt_id, status, attempt_count, next_run_at, error_message, generated_title, generated_content)
+		VALUES ($1, $2, $3, $4, NOW(), $5, $6, $7)
+		RETURNING id
+	`
+
+	var id int64
+	if err := db.QueryRowContext(context.Background(), query, transcriptionID, promptID, status, attemptCount, errorMessage, generatedTitle, generatedContent).Scan(&id); err != nil {
+		t.Fatalf("failed to seed prompt run job: %v", err)
+	}
+
+	return id
+}
+
+func SeedArticle(t *testing.T, db *sql.DB, userID int64, promptRunJobID *int64, title, content string) int64 {
+	t.Helper()
+
+	const query = `
+		INSERT INTO articles (user_id, prompt_run_job_id, title, content)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id
+	`
+
+	var id int64
+	var nullablePromptRunJobID any
+	if promptRunJobID != nil {
+		nullablePromptRunJobID = *promptRunJobID
+	}
+
+	if err := db.QueryRowContext(context.Background(), query, userID, nullablePromptRunJobID, title, content).Scan(&id); err != nil {
+		t.Fatalf("failed to seed article: %v", err)
+	}
+
+	return id
+}
+
+func MustFindMigrationPath(name string) string {
+	return filepath.Join(projectRoot(), "migrations", "migrations", name)
+}
+
+func FormatDSN(host string, port int, dbName string) string {
+	return fmt.Sprintf("postgres://test:test@%s:%d/%s?sslmode=disable", host, port, dbName)
 }

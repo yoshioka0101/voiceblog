@@ -18,15 +18,15 @@ enum AppConfigurationError: LocalizedError {
 }
 
 extension Bundle {
-    func googleClientID() throws -> String {
+    nonisolated func googleClientID() throws -> String {
         try requiredConfigurationValue(for: "GIDClientID")
     }
 
-    func googleServerClientID() throws -> String {
+    nonisolated func googleServerClientID() throws -> String {
         try requiredConfigurationValue(for: "GIDServerClientID")
     }
 
-    func apiBaseURL() throws -> URL {
+    nonisolated func apiBaseURL() throws -> URL {
         let value = try requiredConfigurationValue(for: "APIBaseURL")
 
         guard
@@ -41,7 +41,7 @@ extension Bundle {
         return url
     }
 
-    private func requiredConfigurationValue(for key: String) throws -> String {
+    private nonisolated func requiredConfigurationValue(for key: String) throws -> String {
         guard let rawValue = object(forInfoDictionaryKey: key) as? String else {
             throw AppConfigurationError.missingValue(key)
         }

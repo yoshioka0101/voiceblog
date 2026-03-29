@@ -1,0 +1,22 @@
+post:
+  summary: Create transcription
+  operationId: createTranscription
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/transcription_create_request.yaml
+  responses:
+    "201":
+      description: Created
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/transcription.yaml
+    "400":
+      description: Bad Request
+    "401":
+      description: Unauthorized

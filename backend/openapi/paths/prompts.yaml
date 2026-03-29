@@ -1,0 +1,38 @@
+get:
+  summary: List current user's prompts and system prompts
+  operationId: getListPrompts
+  security:
+    - bearerAuth: []
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: ../components/schemas/prompt.yaml
+    "401":
+      description: Unauthorized
+post:
+  summary: Create prompt
+  operationId: createPrompt
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/prompt_create_request.yaml
+  responses:
+    "201":
+      description: Created
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/prompt.yaml
+    "400":
+      description: Bad Request
+    "401":
+      description: Unauthorized

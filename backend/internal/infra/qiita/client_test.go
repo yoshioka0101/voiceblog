@@ -22,10 +22,12 @@ func TestPublish(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(createItemResponse{
+		if err := json.NewEncoder(w).Encode(createItemResponse{
 			ID:  "abc123",
 			URL: "https://qiita.com/user/items/abc123",
-		})
+		}); err != nil {
+			t.Fatal(err)
+		}
 	}))
 	defer server.Close()
 
@@ -63,7 +65,9 @@ func TestVerify(t *testing.T) {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"id":"user123"}`))
+		if _, err := w.Write([]byte(`{"id":"user123"}`)); err != nil {
+			t.Fatal(err)
+		}
 	}))
 	defer server.Close()
 
@@ -86,7 +90,9 @@ func TestVerify(t *testing.T) {
 func TestPublishError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(`{"message":"Unauthorized"}`))
+		if _, err := w.Write([]byte(`{"message":"Unauthorized"}`)); err != nil {
+			t.Fatal(err)
+		}
 	}))
 	defer server.Close()
 

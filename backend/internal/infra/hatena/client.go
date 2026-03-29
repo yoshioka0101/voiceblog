@@ -55,7 +55,9 @@ func (c *Client) Verify(ctx context.Context, token string) error {
 		return fmt.Errorf("request hatena verify: %w", err)
 	}
 	defer resp.Body.Close()
-	io.ReadAll(resp.Body)
+	if _, err := io.ReadAll(resp.Body); err != nil {
+		return fmt.Errorf("read hatena verify response: %w", err)
+	}
 
 	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
 		return fmt.Errorf("invalid token: hatena returned status %d", resp.StatusCode)
@@ -159,7 +161,9 @@ type atomLink struct {
 // buildWSSEHeader formats the credential string Hatena expects for AtomPub authentication.
 func buildWSSEHeader(username, password string) string {
 	nonce := make([]byte, 20)
-	rand.Read(nonce)
+	if _, err := rand.Read(nonce); err != nil {
+		panic(fmt.Sprintf("generate hatena nonce: %v", err))
+	}
 	nonceBase64 := base64.StdEncoding.EncodeToString(nonce)
 	created := time.Now().UTC().Format(time.RFC3339)
 

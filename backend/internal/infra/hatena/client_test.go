@@ -23,11 +23,13 @@ func TestPublish(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/xml")
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(`<?xml version="1.0" encoding="utf-8"?>
+		if _, err := w.Write([]byte(`<?xml version="1.0" encoding="utf-8"?>
 <entry xmlns="http://www.w3.org/2005/Atom">
   <id>tag:blog.hatena.ne.jp,2013:testuser-testblog-123</id>
   <link rel="alternate" href="https://testuser.hatenablog.com/entry/2026/03/26/test"/>
-</entry>`))
+</entry>`)); err != nil {
+			t.Fatal(err)
+		}
 	}))
 	defer server.Close()
 
@@ -76,7 +78,9 @@ func TestVerify(t *testing.T) {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`<?xml version="1.0" encoding="utf-8"?><service/>`))
+		if _, err := w.Write([]byte(`<?xml version="1.0" encoding="utf-8"?><service/>`)); err != nil {
+			t.Fatal(err)
+		}
 	}))
 	defer server.Close()
 
@@ -107,7 +111,9 @@ func TestPublishInvalidToken(t *testing.T) {
 func TestPublishError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte("Forbidden"))
+		if _, err := w.Write([]byte("Forbidden")); err != nil {
+			t.Fatal(err)
+		}
 	}))
 	defer server.Close()
 

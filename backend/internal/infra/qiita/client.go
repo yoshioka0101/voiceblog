@@ -62,7 +62,9 @@ func (c *Client) Verify(ctx context.Context, token string) error {
 		return fmt.Errorf("request qiita verify: %w", err)
 	}
 	defer resp.Body.Close()
-	io.ReadAll(resp.Body)
+	if _, err := io.ReadAll(resp.Body); err != nil {
+		return fmt.Errorf("read qiita verify response: %w", err)
+	}
 
 	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
 		return fmt.Errorf("invalid token: qiita returned status %d", resp.StatusCode)

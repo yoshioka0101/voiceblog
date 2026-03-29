@@ -1,35 +1,16 @@
 import SwiftUI
 
 struct PromptRunComposerView: View {
-    enum DraftTab: String, CaseIterable, Identifiable {
-        case source
-        case preview
-
-        var id: String { rawValue }
-
-        var title: String {
-            switch self {
-            case .source:
-                return "Markdown"
-            case .preview:
-                return "Preview"
-            }
-        }
-    }
-
     let auth: AuthManager
     let transcription: Transcription
 
     @State private var prompts: [Prompt] = []
     @State private var selectedPromptId: Int64?
     @State private var isLoading = false
-    @State private var isRunning = false
-    @State private var job: PromptRunJob?
-    @State private var savedArticle: Article?
-    @State private var selectedDraftTab: DraftTab = .source
-    @State private var isSavingArticle = false
+    @State private var isGenerating = false
+    @State private var generatedArticle: Article?
+    @State private var showGeneratedArticle = false
     @State private var errorMessage: String?
-    @State private var pollTask: Task<Void, Never>?
 
     var body: some View {
         ScrollView {
@@ -49,8 +30,8 @@ struct PromptRunComposerView: View {
                     promptSelectionSection
                 }
 
-                if let job {
-                    jobStatusSection(job)
+                if let generatedArticle {
+                    generatedArticleSection(generatedArticle)
                 }
             }
             .padding(20)
@@ -62,15 +43,15 @@ struct PromptRunComposerView: View {
                 endPoint: .bottomTrailing
             )
         )
-        .navigationTitle("AI 下書き生成")
+        .navigationTitle("AI 記事生成")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                if isRunning {
+                if isGenerating {
                     ProgressView()
                 } else {
-                    Button("AIで要約") {
+                    Button("記事を生成") {
                         Task {
-                            await runPrompt()
+                            await generateArticle()
                         }
                     }
                     .disabled(selectedPrompt == nil)
@@ -80,8 +61,10 @@ struct PromptRunComposerView: View {
         .task {
             await loadPrompts()
         }
-        .onDisappear {
-            pollTask?.cancel()
+        .navigationDestination(isPresented: $showGeneratedArticle) {
+            if let generatedArticle {
+                ArticleDetailView(auth: auth, article: generatedArticle)
+            }
         }
         .alert("エラー", isPresented: isShowingError) {
             Button("閉じる", role: .cancel) {
@@ -144,71 +127,30 @@ struct PromptRunComposerView: View {
         }
     }
 
-    @ViewBuilder
-    private func jobStatusSection(_ job: PromptRunJob) -> some View {
-        AppSurface(accent: statusTint(for: job.status)) {
-            Text("生成結果")
+    private func generatedArticleSection(_ article: Article) -> some View {
+        AppSurface(accent: .green) {
+            Text("生成した記事")
                 .font(.headline)
 
             HStack(spacing: 8) {
-                AppTag(title: statusLabel(for: job.status), tint: statusTint(for: job.status))
-                AppTag(title: "試行 \(job.attemptCount) 回", tint: .blue)
+                AppTag(title: "保存済み", tint: .green)
+                AppTag(title: article.updatedAt.formatted(date: .abbreviated, time: .shortened), tint: .blue)
             }
 
-            LabeledContent("Job ID", value: String(job.id))
-            LabeledContent("作成", value: job.createdAt.formatted(date: .abbreviated, time: .shortened))
+            Text(article.title)
+                .font(.title3.weight(.semibold))
 
-            if let errorMessage = job.userFacingErrorMessage {
-                Text(errorMessage)
-                    .font(.subheadline)
-                    .foregroundStyle(.red)
+            Text(article.content)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(8)
+
+            Button {
+                showGeneratedArticle = true
+            } label: {
+                Label("記事詳細を開く", systemImage: "doc.text.magnifyingglass")
             }
-
-            if let generatedTitle = job.generatedTitle,
-               let generatedContent = job.generatedContent {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("AI が生成した markdown")
-                        .font(.headline)
-
-                    Picker("表示", selection: $selectedDraftTab) {
-                        ForEach(DraftTab.allCases) { tab in
-                            Text(tab.title).tag(tab)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-
-                    if selectedDraftTab == .source {
-                        Text(markdownSource(title: generatedTitle, content: generatedContent))
-                            .font(.system(.body, design: .monospaced))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .textSelection(.enabled)
-                    } else {
-                        markdownPreview(title: generatedTitle, content: generatedContent)
-                    }
-
-                    if let savedArticle {
-                        NavigationLink {
-                            ArticleDetailView(auth: auth, article: savedArticle)
-                        } label: {
-                            Label("保存した記事を見る", systemImage: "doc.text.magnifyingglass")
-                        }
-                        .buttonStyle(AppSecondaryButtonStyle(tint: .indigo))
-                    } else if isSavingArticle {
-                        ProgressView("記事を保存しています")
-                            .padding(.top, 4)
-                    } else {
-                        Button {
-                            Task {
-                                await saveArticle(job: job, title: generatedTitle, content: generatedContent)
-                            }
-                        } label: {
-                            Label("記事として保存", systemImage: "square.and.arrow.down")
-                        }
-                        .buttonStyle(AppPrimaryButtonStyle(tint: .indigo))
-                    }
-                }
-                .padding(.top, 6)
-            }
+            .buttonStyle(AppSecondaryButtonStyle(tint: .indigo))
         }
     }
 
@@ -229,124 +171,26 @@ struct PromptRunComposerView: View {
     }
 
     @MainActor
-    private func runPrompt() async {
+    private func generateArticle() async {
         guard let selectedPrompt else {
             return
         }
 
-        isRunning = true
-        savedArticle = nil
-        defer { isRunning = false }
+        isGenerating = true
+        generatedArticle = nil
+        showGeneratedArticle = false
+        defer { isGenerating = false }
 
         do {
             let token = try await auth.fetchIDToken()
-            let created = try await APIClient.shared.createPromptRunJob(
-                request: PromptRunJobCreateRequest(transcriptionId: transcription.id, promptId: selectedPrompt.id),
+            let article = try await APIClient.shared.generateArticle(
+                request: ArticleGenerateRequest(transcriptionId: transcription.id, promptId: selectedPrompt.id),
                 token: token
             )
-            job = created
-
-            if created.isInProgress {
-                await startPolling(jobId: created.id)
-            }
+            generatedArticle = article
+            showGeneratedArticle = true
         } catch {
-            errorMessage = error.userFacingMessage(fallback: "AI下書きの開始に失敗しました。しばらくしてからもう一度お試しください。")
-        }
-    }
-
-    @MainActor
-    private func startPolling(jobId: Int64) async {
-        pollTask?.cancel()
-        pollTask = Task {
-            for _ in 0..<10 {
-                guard !Task.isCancelled else {
-                    return
-                }
-
-                try? await Task.sleep(for: .seconds(1))
-                do {
-                    let token = try await auth.fetchIDToken()
-                    let latest = try await APIClient.shared.getPromptRunJob(id: jobId, token: token)
-                    await MainActor.run {
-                        job = latest
-                    }
-                    if !latest.isInProgress {
-                        return
-                    }
-                } catch {
-                    await MainActor.run {
-                        errorMessage = error.userFacingMessage(fallback: "AI下書きの取得に失敗しました。しばらくしてからもう一度お試しください。")
-                    }
-                    return
-                }
-            }
-        }
-    }
-
-    @MainActor
-    private func saveArticle(job: PromptRunJob, title: String, content: String) async {
-        guard !isSavingArticle else {
-            return
-        }
-
-        isSavingArticle = true
-        defer { isSavingArticle = false }
-
-        do {
-            let token = try await auth.fetchIDToken()
-            savedArticle = try await APIClient.shared.createArticle(
-                request: ArticleCreateRequest(title: title, content: content, promptRunJobId: job.id),
-                token: token
-            )
-        } catch {
-            errorMessage = error.userFacingMessage(fallback: "記事の保存に失敗しました。しばらくしてからもう一度お試しください。")
-        }
-    }
-
-    private func markdownSource(title: String, content: String) -> String {
-        "# \(title)\n\n\(content)"
-    }
-
-    @ViewBuilder
-    private func markdownPreview(title: String, content: String) -> some View {
-        let markdown = markdownSource(title: title, content: content)
-        if let attributed = try? AttributedString(
-            markdown: markdown,
-            options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .full)
-        ) {
-            Text(attributed)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .textSelection(.enabled)
-        } else {
-            Text(markdown)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .textSelection(.enabled)
-        }
-    }
-
-    private func statusTint(for status: String) -> Color {
-        switch status {
-        case "completed":
-            return .green
-        case "failed":
-            return .red
-        case "running":
-            return .orange
-        default:
-            return .blue
-        }
-    }
-
-    private func statusLabel(for status: String) -> String {
-        switch status {
-        case "completed":
-            return "完了"
-        case "failed":
-            return "失敗"
-        case "running":
-            return "実行中"
-        default:
-            return "待機中"
+            errorMessage = error.userFacingMessage(fallback: "AI記事の生成に失敗しました。しばらくしてからもう一度お試しください。")
         }
     }
 }

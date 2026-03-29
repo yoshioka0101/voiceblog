@@ -16,7 +16,7 @@ func TestCreatePrompt(t *testing.T) {
 	userID := testutil.SeedUser(t, db, "google", "sub-create-prompt", "create-prompt@example.com", "Create Prompt User")
 	repo := postgresql.NewPromptRepository(db)
 
-	promptValue, err := repo.Create(context.Background(), &entity.Prompt{
+	promptValue, err := repo.CreatePrompt(context.Background(), &entity.Prompt{
 		UserID:   &userID,
 		Name:     "My Prompt",
 		Body:     "Summarize this transcript.",
@@ -56,7 +56,7 @@ func TestListVisiblePromptsByUserID(t *testing.T) {
 	testutil.SeedPrompt(t, db, &targetUserID, "target-inactive", "hidden", false, false)
 	testutil.SeedPrompt(t, db, &otherUserID, "other-active", "hidden", true, false)
 
-	prompts, err := repo.ListVisibleByUserID(context.Background(), targetUserID)
+	prompts, err := repo.ListVisiblePromptsByUserID(context.Background(), targetUserID)
 	if err != nil {
 		t.Fatalf("ListVisibleByUserID failed: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestUpdatePrompt(t *testing.T) {
 
 	promptID := testutil.SeedPrompt(t, db, &userID, "old", "old body", true, false)
 
-	updated, err := repo.Update(context.Background(), &entity.Prompt{
+	updated, err := repo.UpdatePrompt(context.Background(), &entity.Prompt{
 		ID:       promptID,
 		UserID:   &userID,
 		Name:     "new",
@@ -124,11 +124,11 @@ func TestDeletePrompt(t *testing.T) {
 
 	promptID := testutil.SeedPrompt(t, db, &userID, "delete-me", "body", true, false)
 
-	if err := repo.Delete(context.Background(), promptID); err != nil {
+	if err := repo.DeletePrompt(context.Background(), promptID); err != nil {
 		t.Fatalf("DeletePrompt failed: %v", err)
 	}
 
-	_, err := repo.FindByID(context.Background(), promptID)
+	_, err := repo.FindPromptByID(context.Background(), promptID)
 	if !errors.Is(err, promptusecase.ErrNotFound) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
 	}
@@ -138,7 +138,7 @@ func TestFindPromptByID_NotFound(t *testing.T) {
 	db := testutil.SetupTestDB(t)
 	repo := postgresql.NewPromptRepository(db)
 
-	_, err := repo.FindByID(context.Background(), 99999)
+	_, err := repo.FindPromptByID(context.Background(), 99999)
 	if !errors.Is(err, promptusecase.ErrNotFound) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
 	}

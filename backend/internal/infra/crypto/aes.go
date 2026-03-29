@@ -8,10 +8,13 @@ import (
 	"fmt"
 )
 
+// AESEncryptor encrypts provider tokens before they are stored and decrypts them after loading.
+// The ciphertext and nonce are stored separately so AES-GCM can verify integrity on decrypt.
 type AESEncryptor struct {
 	gcm cipher.AEAD
 }
 
+// NewAESEncryptor builds an AES-256-GCM encryptor from a 64-character hex key.
 func NewAESEncryptor(keyHex string) (*AESEncryptor, error) {
 	key, err := hex.DecodeString(keyHex)
 	if err != nil {

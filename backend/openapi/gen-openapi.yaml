@@ -215,6 +215,29 @@ paths:
           description: Bad Request
         '401':
           description: Unauthorized
+  /articles/generate:
+    post:
+      summary: Generate article synchronously
+      operationId: generateArticle
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/article_generate_request'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/article'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
   /articles/{id}:
     get:
       summary: Get current user's article
@@ -326,6 +349,8 @@ components:
       $ref: '#/components/schemas/article_list_response'
     CreateArticleRequest:
       $ref: '#/components/schemas/article_create_request'
+    GenerateArticleRequest:
+      $ref: '#/components/schemas/article_generate_request'
     UpdateArticleRequest:
       $ref: '#/components/schemas/article_update_request'
     HealthResponse:
@@ -523,6 +548,18 @@ components:
       required:
         - title
         - content
+    article_generate_request:
+      type: object
+      properties:
+        transcription_id:
+          type: integer
+          format: int64
+        prompt_id:
+          type: integer
+          format: int64
+      required:
+        - transcription_id
+        - prompt_id
     article_update_request:
       type: object
       properties:

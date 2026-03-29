@@ -58,7 +58,7 @@ func (uc *UseCase) StoreToken(ctx context.Context, userID int64, provider, plain
 		return apperr.InternalError("failed to encrypt token")
 	}
 
-	_, err = uc.repo.Upsert(ctx, &entity.ExternalToken{
+	_, err = uc.repo.StoreExternalToken(ctx, &entity.ExternalToken{
 		UserID:         userID,
 		Provider:       provider,
 		EncryptedToken: ciphertext,

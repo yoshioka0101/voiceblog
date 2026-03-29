@@ -10,6 +10,8 @@ import (
 	"testing"
 )
 
+// Hatena keeps its own client tests because the contract is WSSE + AtomPub XML, not Qiita's Bearer + JSON API.
+// Ref: https://developer.hatena.ne.jp/ja/documents/blog/apis/atom/
 func TestPublish(t *testing.T) {
 	var receivedWSSE string
 	var receivedBody string

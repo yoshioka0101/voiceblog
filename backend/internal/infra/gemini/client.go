@@ -12,7 +12,7 @@ import (
 	"text/template"
 	"time"
 
-	promptrunjobusecase "github.com/yoshioka0101/voiceblog/backend/internal/usecase/promptrunjob"
+	"github.com/yoshioka0101/voiceblog/backend/internal/usecase/articlegen"
 )
 
 //go:embed prompts/*.ptml
@@ -22,7 +22,7 @@ var generateArticleTmpl = template.Must(
 	template.ParseFS(promptFS, "prompts/generate_article.ptml"),
 )
 
-const defaultModel = "gemini-2.0-flash"
+const defaultModel = "gemini-2.5-flash"
 
 type Client struct {
 	apiKey     string
@@ -31,10 +31,15 @@ type Client struct {
 	httpClient *http.Client
 }
 
-func NewClient(apiKey string) *Client {
+func NewClient(apiKey, model string) *Client {
+	model = strings.TrimSpace(model)
+	if model == "" {
+		model = defaultModel
+	}
+
 	return &Client{
 		apiKey:  strings.TrimSpace(apiKey),
-		model:   defaultModel,
+		model:   model,
 		baseURL: "https://generativelanguage.googleapis.com/v1beta/models",
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
@@ -42,7 +47,7 @@ func NewClient(apiKey string) *Client {
 	}
 }
 
-func (c *Client) GenerateArticle(ctx context.Context, input promptrunjobusecase.GenerateArticleInput) (*promptrunjobusecase.GeneratedArticle, error) {
+func (c *Client) GenerateArticle(ctx context.Context, input articlegen.Input) (*articlegen.GeneratedArticle, error) {
 	if c.apiKey == "" {
 		return nil, fmt.Errorf("gemini api key is required")
 	}
@@ -76,7 +81,11 @@ func (c *Client) GenerateArticle(ctx context.Context, input promptrunjobusecase.
 	}
 
 	if response.StatusCode >= http.StatusBadRequest {
-		return nil, fmt.Errorf("gemini request failed: status=%d body=%s", response.StatusCode, strings.TrimSpace(string(body)))
+		cause := fmt.Errorf("gemini request failed: status=%d body=%s", response.StatusCode, strings.TrimSpace(string(body)))
+		if retryAfter, ok := classifyRateLimitedResponse(response.StatusCode, body); ok {
+			return nil, articlegen.NewRateLimitError(retryAfter, cause)
+		}
+		return nil, cause
 	}
 
 	var geminiResponse generateContentResponse
@@ -127,7 +136,19 @@ type generatedArticlePayload struct {
 	Content string `json:"content"`
 }
 
-func buildGenerateRequest(input promptrunjobusecase.GenerateArticleInput) (generateContentRequest, error) {
+type generateContentErrorResponse struct {
+	Error struct {
+		Status  string            `json:"status"`
+		Details []json.RawMessage `json:"details"`
+	} `json:"error"`
+}
+
+type retryInfoDetail struct {
+	Type       string `json:"@type"`
+	RetryDelay string `json:"retryDelay"`
+}
+
+func buildGenerateRequest(input articlegen.Input) (generateContentRequest, error) {
 	var buf bytes.Buffer
 	if err := generateArticleTmpl.ExecuteTemplate(&buf, "generate_article.ptml", input); err != nil {
 		return generateContentRequest{}, fmt.Errorf("execute prompt template: %w", err)
@@ -158,7 +179,7 @@ func (r generateContentResponse) firstText() string {
 	return ""
 }
 
-func parseGeneratedArticle(raw string) (*promptrunjobusecase.GeneratedArticle, error) {
+func parseGeneratedArticle(raw string) (*articlegen.GeneratedArticle, error) {
 	trimmed := strings.TrimSpace(raw)
 	trimmed = strings.TrimPrefix(trimmed, "```json")
 	trimmed = strings.TrimPrefix(trimmed, "```")
@@ -176,8 +197,49 @@ func parseGeneratedArticle(raw string) (*promptrunjobusecase.GeneratedArticle, e
 		return nil, fmt.Errorf("generated article must include title and content")
 	}
 
-	return &promptrunjobusecase.GeneratedArticle{
+	return &articlegen.GeneratedArticle{
 		Title:   payload.Title,
 		Content: payload.Content,
 	}, nil
+}
+
+func classifyRateLimitedResponse(statusCode int, body []byte) (time.Duration, bool) {
+	if statusCode == http.StatusTooManyRequests {
+		return parseRetryDelay(body), true
+	}
+
+	var apiErr generateContentErrorResponse
+	if err := json.Unmarshal(body, &apiErr); err != nil {
+		return 0, false
+	}
+	if apiErr.Error.Status != "RESOURCE_EXHAUSTED" {
+		return 0, false
+	}
+
+	return parseRetryDelay(body), true
+}
+
+func parseRetryDelay(body []byte) time.Duration {
+	var apiErr generateContentErrorResponse
+	if err := json.Unmarshal(body, &apiErr); err != nil {
+		return 0
+	}
+
+	for _, detail := range apiErr.Error.Details {
+		var retryInfo retryInfoDetail
+		if err := json.Unmarshal(detail, &retryInfo); err != nil {
+			continue
+		}
+		if retryInfo.Type != "type.googleapis.com/google.rpc.RetryInfo" {
+			continue
+		}
+
+		retryAfter, err := time.ParseDuration(strings.TrimSpace(retryInfo.RetryDelay))
+		if err != nil {
+			return 0
+		}
+		return retryAfter
+	}
+
+	return 0
 }

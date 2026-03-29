@@ -8,6 +8,8 @@ import (
 	"testing"
 )
 
+// Qiita keeps its own client tests because the contract is Bearer auth + JSON, unlike Hatena's WSSE + AtomPub flow.
+// Ref: https://qiita.com/api/v2/docs
 func TestPublish(t *testing.T) {
 	var receivedAuth string
 	var receivedBody createItemRequest

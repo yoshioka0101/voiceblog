@@ -17,7 +17,7 @@ func TestCreateTranscription(t *testing.T) {
 	userID := testutil.SeedUser(t, db, "google", "sub-create", "create@example.com", "Create User")
 	repo := postgresql.NewTranscriptionRepository(db)
 
-	value, err := repo.Create(context.Background(), &entity.Transcription{
+	value, err := repo.CreateTranscription(context.Background(), &entity.Transcription{
 		UserID:       userID,
 		FullText:     "hello world",
 		SegmentsJSON: json.RawMessage(`[{"text":"hello world"}]`),
@@ -46,7 +46,7 @@ func TestFindTranscriptionByID(t *testing.T) {
 	repo := postgresql.NewTranscriptionRepository(db)
 	ctx := context.Background()
 
-	created, err := repo.Create(ctx, &entity.Transcription{
+	created, err := repo.CreateTranscription(ctx, &entity.Transcription{
 		UserID:       userID,
 		FullText:     "find me",
 		SegmentsJSON: json.RawMessage(`[{"text":"find me"}]`),
@@ -55,7 +55,7 @@ func TestFindTranscriptionByID(t *testing.T) {
 		t.Fatalf("CreateTranscription failed: %v", err)
 	}
 
-	found, err := repo.FindByID(ctx, created.ID)
+	found, err := repo.FindTranscriptionByID(ctx, created.ID)
 	if err != nil {
 		t.Fatalf("FindByID failed: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestFindTranscriptionByID_NotFound(t *testing.T) {
 	db := testutil.SetupTestDB(t)
 	repo := postgresql.NewTranscriptionRepository(db)
 
-	_, err := repo.FindByID(context.Background(), 99999)
+	_, err := repo.FindTranscriptionByID(context.Background(), 99999)
 	if !errors.Is(err, transcriptionusecase.ErrNotFound) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
 	}

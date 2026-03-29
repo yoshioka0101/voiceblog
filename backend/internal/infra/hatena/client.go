@@ -2,8 +2,8 @@ package hatena
 
 import (
 	"context"
-	"crypto/sha1"
 	"crypto/rand"
+	"crypto/sha1"
 	"encoding/base64"
 	"encoding/xml"
 	"fmt"
@@ -18,6 +18,8 @@ type PublishResult struct {
 	URL string
 }
 
+// Client talks to Hatena Blog's AtomPub API with X-WSSE headers and XML payloads.
+// Ref: https://developer.hatena.ne.jp/ja/documents/blog/apis/atom/
 type Client struct {
 	baseURL    string
 	httpClient *http.Client
@@ -32,8 +34,8 @@ func NewClient() *Client {
 	}
 }
 
-// Verify checks if the token is valid by fetching the AtomPub service document.
-// token format: "hatenaID:blogID:apiKey"
+// Verify checks whether the `hatenaID:blogID:apiKey` token can fetch the AtomPub service document.
+// Ref: https://developer.hatena.ne.jp/ja/documents/blog/apis/atom/
 func (c *Client) Verify(ctx context.Context, token string) error {
 	parts := strings.SplitN(token, ":", 3)
 	if len(parts) != 3 {
@@ -65,7 +67,8 @@ func (c *Client) Verify(ctx context.Context, token string) error {
 	return nil
 }
 
-// token format: "hatenaID:blogID:apiKey"
+// Publish creates a new Hatena Blog entry through AtomPub with an X-WSSE header.
+// Ref: https://developer.hatena.ne.jp/ja/documents/blog/apis/atom/
 func (c *Client) Publish(ctx context.Context, token, title, content string) (*PublishResult, error) {
 	parts := strings.SplitN(token, ":", 3)
 	if len(parts) != 3 {
@@ -153,6 +156,7 @@ type atomLink struct {
 	Href string `xml:"href,attr"`
 }
 
+// buildWSSEHeader formats the credential string Hatena expects for AtomPub authentication.
 func buildWSSEHeader(username, password string) string {
 	nonce := make([]byte, 20)
 	rand.Read(nonce)

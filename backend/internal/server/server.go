@@ -23,7 +23,7 @@ func New(db *sql.DB, cfg *config.Config, log *slog.Logger) (*Server, error) {
 	router := gin.New()
 	router.Use(requestLogger(log), recoveryLogger(log))
 
-	container, err := di.New(db, cfg.GoogleClientID, cfg.GeminiAPIKey, cfg.TokenEncryptionKey)
+	container, err := di.New(db, cfg.GoogleClientID, cfg.GeminiAPIKey, cfg.GeminiModel, cfg.TokenEncryptionKey)
 	if err != nil {
 		return nil, err
 	}

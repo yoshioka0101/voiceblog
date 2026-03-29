@@ -17,6 +17,8 @@ paths:
     $ref: ./paths/prompt_run_job_by_id.yaml
   /articles:
     $ref: ./paths/articles.yaml
+  /articles/generate:
+    $ref: ./paths/article_generate.yaml
   /articles/{id}:
     $ref: ./paths/article_by_id.yaml
   /transcriptions:
@@ -29,6 +31,8 @@ components:
       $ref: ./components/schemas/article_list_response.yaml
     CreateArticleRequest:
       $ref: ./components/schemas/article_create_request.yaml
+    GenerateArticleRequest:
+      $ref: ./components/schemas/article_generate_request.yaml
     UpdateArticleRequest:
       $ref: ./components/schemas/article_update_request.yaml
     HealthResponse:

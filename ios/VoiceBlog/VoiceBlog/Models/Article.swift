@@ -38,6 +38,18 @@ extension ArticleCreateRequest: Codable {
     }
 }
 
+struct ArticleGenerateRequest: Sendable {
+    let transcriptionId: Int64
+    let promptId: Int64
+}
+
+extension ArticleGenerateRequest: Codable {
+    nonisolated enum CodingKeys: String, CodingKey {
+        case transcriptionId = "transcription_id"
+        case promptId = "prompt_id"
+    }
+}
+
 struct ArticleUpdateRequest: Sendable {
     let title: String?
     let content: String?

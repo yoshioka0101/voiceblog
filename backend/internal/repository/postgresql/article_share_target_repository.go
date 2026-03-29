@@ -15,19 +15,25 @@ import (
 	"github.com/stephenafamo/bob/dialect/psql/im"
 	"github.com/stephenafamo/bob/dialect/psql/sm"
 
+	dbctx "github.com/yoshioka0101/voiceblog/backend/internal/db"
 	entity "github.com/yoshioka0101/voiceblog/backend/internal/entity/articlesharetarget"
 	"github.com/yoshioka0101/voiceblog/backend/models"
 )
 
 type ArticleShareTargetRepository struct {
-	db bob.DB
+	db bob.Executor
 }
 
 func NewArticleShareTargetRepository(db *sql.DB) *ArticleShareTargetRepository {
 	return &ArticleShareTargetRepository{db: bob.NewDB(db)}
 }
 
-func (r *ArticleShareTargetRepository) Upsert(ctx context.Context, value *entity.ArticleShareTarget) (*entity.ArticleShareTarget, error) {
+func NewArticleShareTargetRepositoryWithExecutor(exec bob.Executor) *ArticleShareTargetRepository {
+	return &ArticleShareTargetRepository{db: exec}
+}
+
+func (r *ArticleShareTargetRepository) StoreArticleShareTarget(ctx context.Context, value *entity.ArticleShareTarget) (*entity.ArticleShareTarget, error) {
+	exec := dbctx.ExecutorFromContext(ctx, r.db)
 	now := time.Now()
 	modelValue, err := models.ArticleShareTargets.Insert(
 		&models.ArticleShareTargetSetter{
@@ -41,7 +47,7 @@ func (r *ArticleShareTargetRepository) Upsert(ctx context.Context, value *entity
 		im.OnConflict("article_id", "provider").DoUpdate(
 			im.SetExcluded("external_id", "external_url", "published_at", "updated_at"),
 		),
-	).One(ctx, r.db)
+	).One(ctx, exec)
 	if err != nil {
 		return nil, fmt.Errorf("upsert article share target: %w", err)
 	}
@@ -49,11 +55,12 @@ func (r *ArticleShareTargetRepository) Upsert(ctx context.Context, value *entity
 	return toArticleShareTargetEntity(modelValue), nil
 }
 
-func (r *ArticleShareTargetRepository) ListByArticleID(ctx context.Context, articleID int64) ([]*entity.ArticleShareTarget, error) {
+func (r *ArticleShareTargetRepository) ListArticleShareTargetsByArticleID(ctx context.Context, articleID int64) ([]*entity.ArticleShareTarget, error) {
+	exec := dbctx.ExecutorFromContext(ctx, r.db)
 	modelValues, err := models.ArticleShareTargets.Query(
 		sm.Where(models.ArticleShareTargets.Columns.ArticleID.EQ(psql.Arg(articleID))),
 		sm.OrderBy(models.ArticleShareTargets.Columns.Provider).Asc(),
-	).All(ctx, r.db)
+	).All(ctx, exec)
 	if err != nil {
 		return nil, fmt.Errorf("list article share targets: %w", err)
 	}
@@ -66,14 +73,15 @@ func (r *ArticleShareTargetRepository) ListByArticleID(ctx context.Context, arti
 	return result, nil
 }
 
-func (r *ArticleShareTargetRepository) FindByArticleIDAndProvider(ctx context.Context, articleID int64, provider string) (*entity.ArticleShareTarget, error) {
+func (r *ArticleShareTargetRepository) FindArticleShareTargetByArticleIDAndProvider(ctx context.Context, articleID int64, provider string) (*entity.ArticleShareTarget, error) {
+	exec := dbctx.ExecutorFromContext(ctx, r.db)
 	modelValue, err := models.ArticleShareTargets.Query(
 		sm.Where(
 			models.ArticleShareTargets.Columns.ArticleID.EQ(psql.Arg(articleID)).And(
 				models.ArticleShareTargets.Columns.Provider.EQ(psql.Arg(provider)),
 			),
 		),
-	).One(ctx, r.db)
+	).One(ctx, exec)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -84,14 +92,15 @@ func (r *ArticleShareTargetRepository) FindByArticleIDAndProvider(ctx context.Co
 	return toArticleShareTargetEntity(modelValue), nil
 }
 
-func (r *ArticleShareTargetRepository) DeleteByArticleIDAndProvider(ctx context.Context, articleID int64, provider string) error {
+func (r *ArticleShareTargetRepository) DeleteArticleShareTargetByArticleIDAndProvider(ctx context.Context, articleID int64, provider string) error {
+	exec := dbctx.ExecutorFromContext(ctx, r.db)
 	_, err := models.ArticleShareTargets.Delete(
 		dm.Where(
 			models.ArticleShareTargets.Columns.ArticleID.EQ(psql.Arg(articleID)).And(
 				models.ArticleShareTargets.Columns.Provider.EQ(psql.Arg(provider)),
 			),
 		),
-	).Exec(ctx, r.db)
+	).Exec(ctx, exec)
 	if err != nil {
 		return fmt.Errorf("delete article share target: %w", err)
 	}

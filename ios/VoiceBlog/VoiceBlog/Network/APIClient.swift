@@ -224,6 +224,10 @@ actor APIClient {
         try await request(path: "/articles", method: "POST", token: token, body: body)
     }
 
+    func generateArticle(request body: ArticleGenerateRequest, token: String) async throws -> Article {
+        try await request(path: "/articles/generate", method: "POST", token: token, body: body)
+    }
+
     func updateArticle(id: Int64, request body: ArticleUpdateRequest, token: String) async throws -> Article {
         try await request(path: "/articles/\(id)", method: "PATCH", token: token, body: body)
     }

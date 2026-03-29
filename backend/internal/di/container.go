@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	dbtx "github.com/yoshioka0101/voiceblog/backend/internal/db"
 	articleEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/article"
 	shareEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/articlesharetarget"
 	tokenEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/externaltoken"
@@ -54,7 +55,7 @@ type Container struct {
 	UseCases     *UseCases
 }
 
-func New(db *sql.DB, googleClientID, geminiAPIKey, tokenEncryptionKey string) (*Container, error) {
+func New(db *sql.DB, googleClientID, geminiAPIKey, geminiModel, tokenEncryptionKey string) (*Container, error) {
 	userRepo := postgresql.NewUserRepository(db)
 	verifier := googleauth.NewTokenVerifier(googleClientID)
 	promptRepo := postgresql.NewPromptRepository(db)
@@ -63,7 +64,8 @@ func New(db *sql.DB, googleClientID, geminiAPIKey, tokenEncryptionKey string) (*
 	promptRunJobRepo := postgresql.NewPromptRunJobRepository(db)
 	externalTokenRepo := postgresql.NewExternalTokenRepository(db)
 	articleShareTargetRepo := postgresql.NewArticleShareTargetRepository(db)
-	geminiClient := gemini.NewClient(geminiAPIKey)
+	geminiClient := gemini.NewClient(geminiAPIKey, geminiModel)
+	txRunner := dbtx.NewTxRunner(db)
 
 	repos := &Repositories{
 		User:               userRepo,
@@ -78,10 +80,10 @@ func New(db *sql.DB, googleClientID, geminiAPIKey, tokenEncryptionKey string) (*
 	useCases := &UseCases{
 		Auth:          authUseCase.NewUseCase(verifier, repos.User),
 		User:          userUseCase.NewUseCase(repos.User),
-		Prompt:        promptUseCase.NewUseCase(repos.Prompt),
+		Prompt:        promptUseCase.NewUseCase(repos.Prompt, txRunner),
 		Transcription: transcriptionUseCase.NewUseCase(repos.Transcription),
-		Article:       articleUseCase.NewUseCase(repos.Article, repos.PromptRunJob, repos.Transcription),
-		PromptRunJob:  promptRunJobUseCase.NewUseCase(repos.PromptRunJob, repos.Transcription, repos.Prompt, geminiClient),
+		Article:       articleUseCase.NewUseCase(repos.Article, repos.PromptRunJob, repos.Transcription, txRunner).WithGenerator(repos.Prompt, geminiClient),
+		PromptRunJob:  promptRunJobUseCase.NewUseCase(repos.PromptRunJob, repos.Transcription, repos.Prompt, geminiClient, txRunner),
 	}
 
 	if tokenEncryptionKey != "" {

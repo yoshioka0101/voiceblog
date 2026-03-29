@@ -2,7 +2,8 @@ package entity
 
 import "context"
 
+// Repository is the minimal contract for storing a transcription and reading it back by ID.
 type Repository interface {
-	Create(ctx context.Context, transcription *Transcription) (*Transcription, error)
-	FindByID(ctx context.Context, id int64) (*Transcription, error)
+	CreateTranscription(ctx context.Context, transcription *Transcription) (*Transcription, error)
+	FindTranscriptionByID(ctx context.Context, id int64) (*Transcription, error)
 }

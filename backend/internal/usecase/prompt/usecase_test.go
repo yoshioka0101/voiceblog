@@ -11,7 +11,7 @@ import (
 
 func TestCreatePrompt(t *testing.T) {
 	repo := &promptRepositoryStub{
-		createFunc: func(_ context.Context, prompt *entity.Prompt) (*entity.Prompt, error) {
+		createPromptFunc: func(_ context.Context, prompt *entity.Prompt) (*entity.Prompt, error) {
 			if prompt.UserID == nil || *prompt.UserID != 11 {
 				t.Fatalf("UserID = %v, want 11", prompt.UserID)
 			}
@@ -47,7 +47,7 @@ func TestCreatePrompt(t *testing.T) {
 func TestListVisiblePromptsByUserID(t *testing.T) {
 	expected := []*entity.Prompt{{ID: 1, Name: "visible"}}
 	repo := &promptRepositoryStub{
-		listVisibleByUserIDFunc: func(_ context.Context, userID int64) ([]*entity.Prompt, error) {
+		listVisiblePromptsByUserIDFunc: func(_ context.Context, userID int64) ([]*entity.Prompt, error) {
 			if userID != 42 {
 				t.Fatalf("userID = %d, want 42", userID)
 			}
@@ -67,7 +67,7 @@ func TestListVisiblePromptsByUserID(t *testing.T) {
 
 func TestUpdatePrompt_ForbiddenForSystemPrompt(t *testing.T) {
 	repo := &promptRepositoryStub{
-		findByIDFunc: func(_ context.Context, id int64) (*entity.Prompt, error) {
+		findPromptByIDFunc: func(_ context.Context, id int64) (*entity.Prompt, error) {
 			if id != 9 {
 				t.Fatalf("id = %d, want 9", id)
 			}
@@ -91,10 +91,10 @@ func TestDeletePrompt_DeletesOwnedPrompt(t *testing.T) {
 	userID := int64(7)
 	deletedID := int64(0)
 	repo := &promptRepositoryStub{
-		findByIDFunc: func(_ context.Context, id int64) (*entity.Prompt, error) {
+		findPromptByIDFunc: func(_ context.Context, id int64) (*entity.Prompt, error) {
 			return &entity.Prompt{ID: id, UserID: &userID}, nil
 		},
-		deleteFunc: func(_ context.Context, id int64) error {
+		deletePromptFunc: func(_ context.Context, id int64) error {
 			deletedID = id
 			return nil
 		},
@@ -109,30 +109,71 @@ func TestDeletePrompt_DeletesOwnedPrompt(t *testing.T) {
 	}
 }
 
+func TestUpdatePrompt_UsesTransactionRunner(t *testing.T) {
+	userID := int64(5)
+	updated := false
+	repo := &promptRepositoryStub{
+		findPromptByIDFunc: func(_ context.Context, id int64) (*entity.Prompt, error) {
+			return &entity.Prompt{ID: id, UserID: &userID, Name: "before", Body: "body", IsActive: true}, nil
+		},
+		updatePromptFunc: func(_ context.Context, prompt *entity.Prompt) (*entity.Prompt, error) {
+			updated = true
+			return prompt, nil
+		},
+	}
+	txRunner := &txRunnerStub{}
+
+	uc := promptusecase.NewUseCase(repo, txRunner)
+	updatedName := "after"
+	_, err := uc.UpdatePrompt(context.Background(), promptusecase.UpdatePromptInput{
+		UserID:   userID,
+		PromptID: 9,
+		Name:     &updatedName,
+	})
+	if err != nil {
+		t.Fatalf("UpdatePrompt failed: %v", err)
+	}
+	if !txRunner.called {
+		t.Fatal("transaction runner was not used")
+	}
+	if !updated {
+		t.Fatal("update was not called")
+	}
+}
+
 type promptRepositoryStub struct {
-	listVisibleByUserIDFunc func(ctx context.Context, userID int64) ([]*entity.Prompt, error)
-	createFunc              func(ctx context.Context, prompt *entity.Prompt) (*entity.Prompt, error)
-	findByIDFunc            func(ctx context.Context, id int64) (*entity.Prompt, error)
-	updateFunc              func(ctx context.Context, prompt *entity.Prompt) (*entity.Prompt, error)
-	deleteFunc              func(ctx context.Context, id int64) error
+	listVisiblePromptsByUserIDFunc func(ctx context.Context, userID int64) ([]*entity.Prompt, error)
+	createPromptFunc               func(ctx context.Context, prompt *entity.Prompt) (*entity.Prompt, error)
+	findPromptByIDFunc             func(ctx context.Context, id int64) (*entity.Prompt, error)
+	updatePromptFunc               func(ctx context.Context, prompt *entity.Prompt) (*entity.Prompt, error)
+	deletePromptFunc               func(ctx context.Context, id int64) error
 }
 
-func (s *promptRepositoryStub) ListVisibleByUserID(ctx context.Context, userID int64) ([]*entity.Prompt, error) {
-	return s.listVisibleByUserIDFunc(ctx, userID)
+func (s *promptRepositoryStub) ListVisiblePromptsByUserID(ctx context.Context, userID int64) ([]*entity.Prompt, error) {
+	return s.listVisiblePromptsByUserIDFunc(ctx, userID)
 }
 
-func (s *promptRepositoryStub) Create(ctx context.Context, prompt *entity.Prompt) (*entity.Prompt, error) {
-	return s.createFunc(ctx, prompt)
+func (s *promptRepositoryStub) CreatePrompt(ctx context.Context, prompt *entity.Prompt) (*entity.Prompt, error) {
+	return s.createPromptFunc(ctx, prompt)
 }
 
-func (s *promptRepositoryStub) FindByID(ctx context.Context, id int64) (*entity.Prompt, error) {
-	return s.findByIDFunc(ctx, id)
+func (s *promptRepositoryStub) FindPromptByID(ctx context.Context, id int64) (*entity.Prompt, error) {
+	return s.findPromptByIDFunc(ctx, id)
 }
 
-func (s *promptRepositoryStub) Update(ctx context.Context, prompt *entity.Prompt) (*entity.Prompt, error) {
-	return s.updateFunc(ctx, prompt)
+func (s *promptRepositoryStub) UpdatePrompt(ctx context.Context, prompt *entity.Prompt) (*entity.Prompt, error) {
+	return s.updatePromptFunc(ctx, prompt)
 }
 
-func (s *promptRepositoryStub) Delete(ctx context.Context, id int64) error {
-	return s.deleteFunc(ctx, id)
+func (s *promptRepositoryStub) DeletePrompt(ctx context.Context, id int64) error {
+	return s.deletePromptFunc(ctx, id)
+}
+
+type txRunnerStub struct {
+	called bool
+}
+
+func (s *txRunnerStub) RunInTx(ctx context.Context, fn func(context.Context) error) error {
+	s.called = true
+	return fn(ctx)
 }

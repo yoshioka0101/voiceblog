@@ -14,19 +14,25 @@ import (
 	"github.com/stephenafamo/bob/dialect/psql/im"
 	"github.com/stephenafamo/bob/dialect/psql/sm"
 
+	dbctx "github.com/yoshioka0101/voiceblog/backend/internal/db"
 	entity "github.com/yoshioka0101/voiceblog/backend/internal/entity/externaltoken"
 	"github.com/yoshioka0101/voiceblog/backend/models"
 )
 
 type ExternalTokenRepository struct {
-	db bob.DB
+	db bob.Executor
 }
 
 func NewExternalTokenRepository(db *sql.DB) *ExternalTokenRepository {
 	return &ExternalTokenRepository{db: bob.NewDB(db)}
 }
 
-func (r *ExternalTokenRepository) Upsert(ctx context.Context, value *entity.ExternalToken) (*entity.ExternalToken, error) {
+func NewExternalTokenRepositoryWithExecutor(exec bob.Executor) *ExternalTokenRepository {
+	return &ExternalTokenRepository{db: exec}
+}
+
+func (r *ExternalTokenRepository) StoreExternalToken(ctx context.Context, value *entity.ExternalToken) (*entity.ExternalToken, error) {
+	exec := dbctx.ExecutorFromContext(ctx, r.db)
 	now := time.Now()
 	modelValue, err := models.ExternalTokens.Insert(
 		&models.ExternalTokenSetter{
@@ -39,7 +45,7 @@ func (r *ExternalTokenRepository) Upsert(ctx context.Context, value *entity.Exte
 		im.OnConflict("user_id", "provider").DoUpdate(
 			im.SetExcluded("encrypted_token", "nonce", "updated_at"),
 		),
-	).One(ctx, r.db)
+	).One(ctx, exec)
 	if err != nil {
 		return nil, fmt.Errorf("upsert external token: %w", err)
 	}
@@ -48,13 +54,14 @@ func (r *ExternalTokenRepository) Upsert(ctx context.Context, value *entity.Exte
 }
 
 func (r *ExternalTokenRepository) FindByUserIDAndProvider(ctx context.Context, userID int64, provider string) (*entity.ExternalToken, error) {
+	exec := dbctx.ExecutorFromContext(ctx, r.db)
 	modelValue, err := models.ExternalTokens.Query(
 		sm.Where(
 			models.ExternalTokens.Columns.UserID.EQ(psql.Arg(userID)).And(
 				models.ExternalTokens.Columns.Provider.EQ(psql.Arg(provider)),
 			),
 		),
-	).One(ctx, r.db)
+	).One(ctx, exec)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -66,13 +73,14 @@ func (r *ExternalTokenRepository) FindByUserIDAndProvider(ctx context.Context, u
 }
 
 func (r *ExternalTokenRepository) DeleteByUserIDAndProvider(ctx context.Context, userID int64, provider string) error {
+	exec := dbctx.ExecutorFromContext(ctx, r.db)
 	_, err := models.ExternalTokens.Delete(
 		dm.Where(
 			models.ExternalTokens.Columns.UserID.EQ(psql.Arg(userID)).And(
 				models.ExternalTokens.Columns.Provider.EQ(psql.Arg(provider)),
 			),
 		),
-	).Exec(ctx, r.db)
+	).Exec(ctx, exec)
 	if err != nil {
 		return fmt.Errorf("delete external token: %w", err)
 	}
@@ -81,10 +89,11 @@ func (r *ExternalTokenRepository) DeleteByUserIDAndProvider(ctx context.Context,
 }
 
 func (r *ExternalTokenRepository) ListByUserID(ctx context.Context, userID int64) ([]*entity.ExternalToken, error) {
+	exec := dbctx.ExecutorFromContext(ctx, r.db)
 	modelValues, err := models.ExternalTokens.Query(
 		sm.Where(models.ExternalTokens.Columns.UserID.EQ(psql.Arg(userID))),
 		sm.OrderBy(models.ExternalTokens.Columns.Provider).Asc(),
-	).All(ctx, r.db)
+	).All(ctx, exec)
 	if err != nil {
 		return nil, fmt.Errorf("list external tokens: %w", err)
 	}

@@ -72,6 +72,7 @@ func (h *Handler) GetPromptRunJob(c *gin.Context) {
 	c.JSON(http.StatusOK, presenter.PromptRunJob(value))
 }
 
+// parseIDParam converts a path parameter to a positive int64 so handlers reject zero, negative, and malformed IDs early.
 func parseIDParam(raw string) (int64, error) {
 	id, err := strconv.ParseInt(raw, 10, 64)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/yoshioka0101/voiceblog/backend/internal/apperr"
+	dbtx "github.com/yoshioka0101/voiceblog/backend/internal/db"
 	entity "github.com/yoshioka0101/voiceblog/backend/internal/entity/prompt"
 )
 
@@ -29,22 +30,31 @@ type UpdatePromptInput struct {
 }
 
 type UseCase struct {
-	repo entity.Repository
+	repo     entity.Repository
+	txRunner dbtx.TxRunner
 }
 
-func NewUseCase(repo entity.Repository) *UseCase {
-	return &UseCase{repo: repo}
+func NewUseCase(repo entity.Repository, txRunners ...dbtx.TxRunner) *UseCase {
+	var txRunner dbtx.TxRunner
+	if len(txRunners) > 0 {
+		txRunner = txRunners[0]
+	}
+
+	return &UseCase{
+		repo:     repo,
+		txRunner: txRunner,
+	}
 }
 
 func (uc *UseCase) ListVisiblePromptsByUserID(ctx context.Context, userID int64) ([]*entity.Prompt, error) {
-	return uc.repo.ListVisibleByUserID(ctx, userID)
+	return uc.repo.ListVisiblePromptsByUserID(ctx, userID)
 }
 
 func (uc *UseCase) CreatePrompt(ctx context.Context, input CreatePromptInput) (*entity.Prompt, error) {
 	name := strings.TrimSpace(input.Name)
 	body := strings.TrimSpace(input.Body)
 	if name == "" || body == "" {
-		return nil, apperr.BadRequest( "name and body are required")
+		return nil, apperr.BadRequest("name and body are required")
 	}
 
 	isActive := true
@@ -53,7 +63,7 @@ func (uc *UseCase) CreatePrompt(ctx context.Context, input CreatePromptInput) (*
 	}
 
 	userID := input.UserID
-	return uc.repo.Create(ctx, &entity.Prompt{
+	return uc.repo.CreatePrompt(ctx, &entity.Prompt{
 		UserID:   &userID,
 		Name:     name,
 		Body:     body,
@@ -63,10 +73,28 @@ func (uc *UseCase) CreatePrompt(ctx context.Context, input CreatePromptInput) (*
 
 func (uc *UseCase) UpdatePrompt(ctx context.Context, input UpdatePromptInput) (*entity.Prompt, error) {
 	if input.Name == nil && input.Body == nil && input.IsActive == nil {
-		return nil, apperr.BadRequest( "at least one field is required")
+		return nil, apperr.BadRequest("at least one field is required")
 	}
 
-	prompt, err := uc.repo.FindByID(ctx, input.PromptID)
+	if uc.txRunner == nil {
+		return uc.updatePrompt(ctx, input)
+	}
+
+	var prompt *entity.Prompt
+	err := uc.txRunner.RunInTx(ctx, func(txCtx context.Context) error {
+		var err error
+		prompt, err = uc.updatePrompt(txCtx, input)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return prompt, nil
+}
+
+func (uc *UseCase) updatePrompt(ctx context.Context, input UpdatePromptInput) (*entity.Prompt, error) {
+	prompt, err := uc.repo.FindPromptByID(ctx, input.PromptID)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +105,7 @@ func (uc *UseCase) UpdatePrompt(ctx context.Context, input UpdatePromptInput) (*
 	if input.Name != nil {
 		trimmedName := strings.TrimSpace(*input.Name)
 		if trimmedName == "" {
-			return nil, apperr.BadRequest( "name must not be blank")
+			return nil, apperr.BadRequest("name must not be blank")
 		}
 		prompt.Name = trimmedName
 	}
@@ -85,7 +113,7 @@ func (uc *UseCase) UpdatePrompt(ctx context.Context, input UpdatePromptInput) (*
 	if input.Body != nil {
 		trimmedBody := strings.TrimSpace(*input.Body)
 		if trimmedBody == "" {
-			return nil, apperr.BadRequest( "body must not be blank")
+			return nil, apperr.BadRequest("body must not be blank")
 		}
 		prompt.Body = trimmedBody
 	}
@@ -94,11 +122,21 @@ func (uc *UseCase) UpdatePrompt(ctx context.Context, input UpdatePromptInput) (*
 		prompt.IsActive = *input.IsActive
 	}
 
-	return uc.repo.Update(ctx, prompt)
+	return uc.repo.UpdatePrompt(ctx, prompt)
 }
 
 func (uc *UseCase) DeletePrompt(ctx context.Context, userID, promptID int64) error {
-	prompt, err := uc.repo.FindByID(ctx, promptID)
+	if uc.txRunner == nil {
+		return uc.deletePrompt(ctx, userID, promptID)
+	}
+
+	return uc.txRunner.RunInTx(ctx, func(txCtx context.Context) error {
+		return uc.deletePrompt(txCtx, userID, promptID)
+	})
+}
+
+func (uc *UseCase) deletePrompt(ctx context.Context, userID, promptID int64) error {
+	prompt, err := uc.repo.FindPromptByID(ctx, promptID)
 	if err != nil {
 		return err
 	}
@@ -106,7 +144,7 @@ func (uc *UseCase) DeletePrompt(ctx context.Context, userID, promptID int64) err
 		return ErrForbidden
 	}
 
-	return uc.repo.Delete(ctx, promptID)
+	return uc.repo.DeletePrompt(ctx, promptID)
 }
 
 func ownedByUser(prompt *entity.Prompt, userID int64) bool {

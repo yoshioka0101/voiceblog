@@ -11,7 +11,7 @@ import (
 
 func TestCreateTranscription(t *testing.T) {
 	repo := &transcriptionRepositoryStub{
-		createFunc: func(_ context.Context, value *entity.Transcription) (*entity.Transcription, error) {
+		createTranscriptionFunc: func(_ context.Context, value *entity.Transcription) (*entity.Transcription, error) {
 			if value.UserID != 3 {
 				t.Fatalf("UserID = %d, want 3", value.UserID)
 			}
@@ -42,14 +42,14 @@ func TestCreateTranscription(t *testing.T) {
 }
 
 type transcriptionRepositoryStub struct {
-	createFunc   func(ctx context.Context, transcription *entity.Transcription) (*entity.Transcription, error)
-	findByIDFunc func(ctx context.Context, id int64) (*entity.Transcription, error)
+	createTranscriptionFunc   func(ctx context.Context, transcription *entity.Transcription) (*entity.Transcription, error)
+	findTranscriptionByIDFunc func(ctx context.Context, id int64) (*entity.Transcription, error)
 }
 
-func (s *transcriptionRepositoryStub) Create(ctx context.Context, transcription *entity.Transcription) (*entity.Transcription, error) {
-	return s.createFunc(ctx, transcription)
+func (s *transcriptionRepositoryStub) CreateTranscription(ctx context.Context, transcription *entity.Transcription) (*entity.Transcription, error) {
+	return s.createTranscriptionFunc(ctx, transcription)
 }
 
-func (s *transcriptionRepositoryStub) FindByID(ctx context.Context, id int64) (*entity.Transcription, error) {
-	return s.findByIDFunc(ctx, id)
+func (s *transcriptionRepositoryStub) FindTranscriptionByID(ctx context.Context, id int64) (*entity.Transcription, error) {
+	return s.findTranscriptionByIDFunc(ctx, id)
 }

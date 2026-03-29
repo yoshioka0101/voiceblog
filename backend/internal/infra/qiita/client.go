@@ -15,6 +15,8 @@ type PublishResult struct {
 	URL string
 }
 
+// Client talks to the Qiita API v2 over Bearer-authenticated JSON requests.
+// Ref: https://qiita.com/api/v2/docs
 type Client struct {
 	baseURL    string
 	httpClient *http.Client
@@ -30,11 +32,11 @@ func NewClient() *Client {
 }
 
 type createItemRequest struct {
-	Title   string   `json:"title"`
-	Body    string   `json:"body"`
-	Private bool     `json:"private"`
-	Tags    []tag    `json:"tags"`
-	Tweet   bool     `json:"tweet"`
+	Title   string `json:"title"`
+	Body    string `json:"body"`
+	Private bool   `json:"private"`
+	Tags    []tag  `json:"tags"`
+	Tweet   bool   `json:"tweet"`
 }
 
 type tag struct {
@@ -46,7 +48,8 @@ type createItemResponse struct {
 	URL string `json:"url"`
 }
 
-// Verify checks if the token is valid by calling GET /authenticated_user.
+// Verify checks whether the personal access token is accepted by GET /authenticated_user.
+// Ref: https://qiita.com/api/v2/docs#get-apiv2authenticated_user
 func (c *Client) Verify(ctx context.Context, token string) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/authenticated_user", nil)
 	if err != nil {
@@ -71,6 +74,8 @@ func (c *Client) Verify(ctx context.Context, token string) error {
 	return nil
 }
 
+// Publish creates a public item via POST /items using Qiita's JSON payload format.
+// Ref: https://qiita.com/api/v2/docs#post-apiv2items
 func (c *Client) Publish(ctx context.Context, token, title, content string) (*PublishResult, error) {
 	reqBody := createItemRequest{
 		Title:   title,

@@ -13,6 +13,7 @@ type Config struct {
 	DBDSN              string
 	GoogleClientID     string
 	GeminiAPIKey       string
+	GeminiModel        string
 	TokenEncryptionKey string
 }
 
@@ -43,6 +44,7 @@ func Load() (Config, error) {
 		DBDSN:              dbDSN,
 		GoogleClientID:     googleClientID,
 		GeminiAPIKey:       getEnv("GEMINI_API_KEY", ""),
+		GeminiModel:        getEnv("GEMINI_MODEL", ""),
 		TokenEncryptionKey: getEnv("TOKEN_ENCRYPTION_KEY", ""),
 	}, nil
 }

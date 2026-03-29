@@ -66,7 +66,7 @@ func (uc *UseCase) PublishArticle(ctx context.Context, userID, articleID int64, 
 	}
 
 	now := time.Now()
-	target, err := uc.shareRepo.Upsert(ctx, &shareEntity.ArticleShareTarget{
+	target, err := uc.shareRepo.StoreArticleShareTarget(ctx, &shareEntity.ArticleShareTarget{
 		ArticleID:   articleID,
 		Provider:    provider,
 		ExternalID:  result.ID,
@@ -89,5 +89,5 @@ func (uc *UseCase) GetShareTargets(ctx context.Context, userID, articleID int64)
 		return nil, apperr.ErrForbidden
 	}
 
-	return uc.shareRepo.ListByArticleID(ctx, articleID)
+	return uc.shareRepo.ListArticleShareTargetsByArticleID(ctx, articleID)
 }

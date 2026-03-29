@@ -18,6 +18,7 @@ func RegisterProtectedRoutes(r gin.IRoutes, useCase *usecase.UseCase) {
 	handler := &Handler{useCase: useCase}
 	r.GET("/articles", handler.GetListArticles)
 	r.POST("/articles", handler.CreateArticle)
+	r.POST("/articles/generate", handler.GenerateArticle)
 	r.GET("/articles/:id", handler.GetArticle)
 	r.PATCH("/articles/:id", handler.UpdateArticle)
 	r.DELETE("/articles/:id", handler.DeleteArticle)
@@ -64,6 +65,32 @@ func (h *Handler) CreateArticle(c *gin.Context) {
 	})
 	if err != nil {
 		httperror.FromError(c, err, "failed to create article")
+		return
+	}
+
+	c.JSON(http.StatusCreated, presenter.Article(value))
+}
+
+func (h *Handler) GenerateArticle(c *gin.Context) {
+	user, ok := middleware.CurrentUser(c)
+	if !ok {
+		httperror.Unauthorized(c)
+		return
+	}
+
+	var req api.GenerateArticleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httperror.BadRequest(c, "invalid request")
+		return
+	}
+
+	value, err := h.useCase.GenerateArticle(c.Request.Context(), usecase.GenerateArticleInput{
+		UserID:          user.ID,
+		TranscriptionID: req.TranscriptionId,
+		PromptID:        req.PromptId,
+	})
+	if err != nil {
+		httperror.FromError(c, err, "failed to generate article")
 		return
 	}
 
@@ -146,6 +173,7 @@ func (h *Handler) DeleteArticle(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// parseIDParam converts a path parameter to a positive int64 so handlers reject zero, negative, and malformed IDs early.
 func parseIDParam(raw string) (int64, error) {
 	id, err := strconv.ParseInt(raw, 10, 64)
 	if err != nil {

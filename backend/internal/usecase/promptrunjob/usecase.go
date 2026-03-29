@@ -2,14 +2,15 @@ package usecase
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 	"time"
 
 	"github.com/yoshioka0101/voiceblog/backend/internal/apperr"
+	dbtx "github.com/yoshioka0101/voiceblog/backend/internal/db"
 	promptEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/prompt"
 	entity "github.com/yoshioka0101/voiceblog/backend/internal/entity/promptrunjob"
 	transcriptionEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/transcription"
+	"github.com/yoshioka0101/voiceblog/backend/internal/usecase/articlegen"
 )
 
 var (
@@ -21,17 +22,9 @@ type Generator interface {
 	GenerateArticle(ctx context.Context, input GenerateArticleInput) (*GeneratedArticle, error)
 }
 
-type GenerateArticleInput struct {
-	PromptName   string
-	PromptBody   string
-	FullText     string
-	SegmentsJSON json.RawMessage
-}
+type GenerateArticleInput = articlegen.Input
 
-type GeneratedArticle struct {
-	Title   string
-	Content string
-}
+type GeneratedArticle = articlegen.GeneratedArticle
 
 type CreatePromptRunJobInput struct {
 	UserID          int64
@@ -43,61 +36,38 @@ type UseCase struct {
 	repo              entity.Repository
 	transcriptionRepo transcriptionEntity.Repository
 	promptRepo        promptEntity.Repository
-	generator         Generator
+	generator         articlegen.Generator
+	txRunner          dbtx.TxRunner
 }
 
 func NewUseCase(
 	repo entity.Repository,
 	transcriptionRepo transcriptionEntity.Repository,
 	promptRepo promptEntity.Repository,
-	generator Generator,
+	generator articlegen.Generator,
+	txRunners ...dbtx.TxRunner,
 ) *UseCase {
+	var txRunner dbtx.TxRunner
+	if len(txRunners) > 0 {
+		txRunner = txRunners[0]
+	}
+
 	return &UseCase{
 		repo:              repo,
 		transcriptionRepo: transcriptionRepo,
 		promptRepo:        promptRepo,
 		generator:         generator,
+		txRunner:          txRunner,
 	}
 }
 
 func (uc *UseCase) CreatePromptRunJob(ctx context.Context, input CreatePromptRunJobInput) (*entity.Job, error) {
-	transcriptionValue, err := uc.transcriptionRepo.FindByID(ctx, input.TranscriptionID)
-	if err != nil {
-		return nil, err
-	}
-	if transcriptionValue.UserID != input.UserID {
-		return nil, ErrForbidden
-	}
-
-	promptValue, err := uc.promptRepo.FindByID(ctx, input.PromptID)
-	if err != nil {
-		return nil, err
-	}
-	if !visibleToUser(promptValue, input.UserID) {
-		return nil, ErrForbidden
-	}
-
-	now := time.Now()
-	job, err := uc.repo.CreatePromptRunJob(ctx, &entity.Job{
-		TranscriptionID: input.TranscriptionID,
-		PromptID:        input.PromptID,
-		Status:          entity.StatusPending,
-		AttemptCount:    0,
-		NextRunAt:       now,
-	})
+	transcriptionValue, promptValue, job, err := uc.startPromptRunJob(ctx, input)
 	if err != nil {
 		return nil, err
 	}
 
-	job.Status = entity.StatusRunning
-	job.AttemptCount = 1
-	job.NextRunAt = time.Now()
-	job, err = uc.repo.UpdatePromptRunJob(ctx, job)
-	if err != nil {
-		return nil, err
-	}
-
-	generated, err := uc.generator.GenerateArticle(ctx, GenerateArticleInput{
+	generated, err := uc.generator.GenerateArticle(ctx, articlegen.Input{
 		PromptName:   promptValue.Name,
 		PromptBody:   promptValue.Body,
 		FullText:     transcriptionValue.FullText,
@@ -126,13 +96,72 @@ func (uc *UseCase) CreatePromptRunJob(ctx context.Context, input CreatePromptRun
 	return job, nil
 }
 
+func (uc *UseCase) startPromptRunJob(ctx context.Context, input CreatePromptRunJobInput) (*transcriptionEntity.Transcription, *promptEntity.Prompt, *entity.Job, error) {
+	var (
+		transcriptionValue *transcriptionEntity.Transcription
+		promptValue        *promptEntity.Prompt
+		job                *entity.Job
+	)
+
+	run := func(runCtx context.Context) error {
+		var err error
+
+		transcriptionValue, err = uc.transcriptionRepo.FindTranscriptionByID(runCtx, input.TranscriptionID)
+		if err != nil {
+			return err
+		}
+		if transcriptionValue.UserID != input.UserID {
+			return ErrForbidden
+		}
+
+		promptValue, err = uc.promptRepo.FindPromptByID(runCtx, input.PromptID)
+		if err != nil {
+			return err
+		}
+		if !visibleToUser(promptValue, input.UserID) {
+			return ErrForbidden
+		}
+
+		now := time.Now()
+		job, err = uc.repo.CreatePromptRunJob(runCtx, &entity.Job{
+			TranscriptionID: input.TranscriptionID,
+			PromptID:        input.PromptID,
+			Status:          entity.StatusPending,
+			AttemptCount:    0,
+			NextRunAt:       now,
+		})
+		if err != nil {
+			return err
+		}
+
+		job.Status = entity.StatusRunning
+		job.AttemptCount = 1
+		job.NextRunAt = time.Now()
+		job, err = uc.repo.UpdatePromptRunJob(runCtx, job)
+		return err
+	}
+
+	if uc.txRunner == nil {
+		if err := run(ctx); err != nil {
+			return nil, nil, nil, err
+		}
+		return transcriptionValue, promptValue, job, nil
+	}
+
+	if err := uc.txRunner.RunInTx(ctx, run); err != nil {
+		return nil, nil, nil, err
+	}
+
+	return transcriptionValue, promptValue, job, nil
+}
+
 func (uc *UseCase) GetPromptRunJob(ctx context.Context, userID, jobID int64) (*entity.Job, error) {
 	job, err := uc.repo.FindPromptRunJobByID(ctx, jobID)
 	if err != nil {
 		return nil, err
 	}
 
-	transcriptionValue, err := uc.transcriptionRepo.FindByID(ctx, job.TranscriptionID)
+	transcriptionValue, err := uc.transcriptionRepo.FindTranscriptionByID(ctx, job.TranscriptionID)
 	if err != nil {
 		return nil, err
 	}

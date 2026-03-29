@@ -29,6 +29,9 @@ type CreatePromptRunJobRequest = PromptRunJobCreateRequest
 // CreateTranscriptionRequest defines model for CreateTranscriptionRequest.
 type CreateTranscriptionRequest = TranscriptionCreateRequest
 
+// GenerateArticleRequest defines model for GenerateArticleRequest.
+type GenerateArticleRequest = ArticleGenerateRequest
+
 // HealthResponse defines model for HealthResponse.
 type HealthResponse = Health
 
@@ -70,6 +73,12 @@ type ArticleCreateRequest struct {
 	Content        string `json:"content"`
 	PromptRunJobId *int64 `json:"prompt_run_job_id,omitempty"`
 	Title          string `json:"title"`
+}
+
+// ArticleGenerateRequest defines model for article_generate_request.
+type ArticleGenerateRequest struct {
+	PromptId        int64 `json:"prompt_id"`
+	TranscriptionId int64 `json:"transcription_id"`
 }
 
 // ArticleListResponse defines model for article_list_response.
@@ -161,6 +170,9 @@ type User struct {
 
 // CreateArticleJSONRequestBody defines body for CreateArticle for application/json ContentType.
 type CreateArticleJSONRequestBody = ArticleCreateRequest
+
+// GenerateArticleJSONRequestBody defines body for GenerateArticle for application/json ContentType.
+type GenerateArticleJSONRequestBody = ArticleGenerateRequest
 
 // UpdateArticleJSONRequestBody defines body for UpdateArticle for application/json ContentType.
 type UpdateArticleJSONRequestBody = ArticleUpdateRequest

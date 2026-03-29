@@ -11,25 +11,31 @@ import (
 	"github.com/stephenafamo/bob"
 	"github.com/stephenafamo/bob/types"
 
+	dbctx "github.com/yoshioka0101/voiceblog/backend/internal/db"
 	entity "github.com/yoshioka0101/voiceblog/backend/internal/entity/transcription"
 	transcriptionusecase "github.com/yoshioka0101/voiceblog/backend/internal/usecase/transcription"
 	"github.com/yoshioka0101/voiceblog/backend/models"
 )
 
 type TranscriptionRepository struct {
-	db bob.DB
+	db bob.Executor
 }
 
 func NewTranscriptionRepository(db *sql.DB) *TranscriptionRepository {
 	return &TranscriptionRepository{db: bob.NewDB(db)}
 }
 
-func (r *TranscriptionRepository) Create(ctx context.Context, transcriptionEntity *entity.Transcription) (*entity.Transcription, error) {
+func NewTranscriptionRepositoryWithExecutor(exec bob.Executor) *TranscriptionRepository {
+	return &TranscriptionRepository{db: exec}
+}
+
+func (r *TranscriptionRepository) CreateTranscription(ctx context.Context, transcriptionEntity *entity.Transcription) (*entity.Transcription, error) {
+	exec := dbctx.ExecutorFromContext(ctx, r.db)
 	value, err := models.Transcriptions.Insert(&models.TranscriptionSetter{
 		UserID:       omit.From(transcriptionEntity.UserID),
 		FullText:     omit.From(transcriptionEntity.FullText),
 		SegmentsJSON: omit.From(types.NewJSON(json.RawMessage(transcriptionEntity.SegmentsJSON))),
-	}).One(ctx, r.db)
+	}).One(ctx, exec)
 	if err != nil {
 		return nil, fmt.Errorf("insert transcription: %w", err)
 	}
@@ -37,9 +43,9 @@ func (r *TranscriptionRepository) Create(ctx context.Context, transcriptionEntit
 	return toTranscriptionEntity(value), nil
 }
 
-
-func (r *TranscriptionRepository) FindByID(ctx context.Context, id int64) (*entity.Transcription, error) {
-	value, err := models.FindTranscription(ctx, r.db, id)
+func (r *TranscriptionRepository) FindTranscriptionByID(ctx context.Context, id int64) (*entity.Transcription, error) {
+	exec := dbctx.ExecutorFromContext(ctx, r.db)
+	value, err := models.FindTranscription(ctx, exec, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, transcriptionusecase.ErrNotFound

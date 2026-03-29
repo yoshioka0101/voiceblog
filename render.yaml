@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: voiceblog-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: starter
+    region: singapore
+    branch: v1.0.0
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: LOG_LEVEL
+        value: info
+      - key: DB_DSN
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: TOKEN_ENCRYPTION_KEY
+        sync: false

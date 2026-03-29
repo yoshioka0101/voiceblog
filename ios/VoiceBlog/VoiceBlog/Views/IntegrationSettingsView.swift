@@ -315,7 +315,7 @@ struct IntegrationSettingsView: View {
         } catch let error as APIError where error == .notFound {
             featureUnavailable = true
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userFacingMessage(fallback: "外部連携の取得に失敗しました。しばらくしてからもう一度お試しください。")
         }
     }
 

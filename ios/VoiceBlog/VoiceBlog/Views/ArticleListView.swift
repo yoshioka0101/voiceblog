@@ -127,7 +127,7 @@ struct ArticleListView: View {
             let token = try await auth.fetchIDToken()
             articles = try await APIClient.shared.getListArticles(token: token)
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userFacingMessage(fallback: "記事の取得に失敗しました。しばらくしてからもう一度お試しください。")
         }
     }
 

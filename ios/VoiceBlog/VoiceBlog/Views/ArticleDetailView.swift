@@ -170,7 +170,7 @@ struct ArticleDetailView: View {
             try await APIClient.shared.deleteArticle(id: article.id, token: token)
             dismiss()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userFacingMessage(fallback: "記事の削除に失敗しました。しばらくしてからもう一度お試しください。")
         }
     }
 }

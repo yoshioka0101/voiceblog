@@ -11,20 +11,59 @@ enum APIError: LocalizedError {
         switch self {
         case .unauthorized:
             return "認証に失敗しました。再度ログインしてください。"
-        case .invalidConfiguration(let message):
-            return message
+        case .invalidConfiguration:
+            return "アプリの設定に問題があります。管理者にお問い合わせください。"
         case .notFound:
             return "この機能はまだ利用できません。"
-        case .serverError(let statusCode, let message, _):
-            if !message.isEmpty {
-                return message
-            }
+        case .serverError(let statusCode, _, _):
             if statusCode == 400 {
                 return "入力内容に問題があります。内容を確認してください。"
             }
             return "サーバーで問題が発生しました。しばらくしてからもう一度お試しください。"
         case .networkError:
             return "通信に失敗しました。ネットワーク接続を確認してください。"
+        }
+    }
+}
+
+extension Error {
+    func userFacingMessage(fallback: String = "処理に失敗しました。しばらくしてからもう一度お試しください。") -> String {
+        switch self {
+        case let apiError as APIError:
+            return apiError.errorDescription ?? fallback
+        case let authError as AuthManagerError:
+            return authError.errorDescription ?? fallback
+        case let speechError as SpeechCaptureError:
+            return speechError.errorDescription ?? fallback
+        case is AppConfigurationError:
+            return "アプリの設定に問題があります。管理者にお問い合わせください。"
+        case let urlError as URLError:
+            return urlError.userFacingMessage(fallback: fallback)
+        default:
+            let nsError = self as NSError
+            if nsError.domain == NSURLErrorDomain {
+                return "通信に失敗しました。ネットワーク接続を確認してください。"
+            }
+            return fallback
+        }
+    }
+}
+
+private extension URLError {
+    func userFacingMessage(fallback: String) -> String {
+        switch code {
+        case .notConnectedToInternet,
+             .networkConnectionLost,
+             .cannotConnectToHost,
+             .cannotFindHost,
+             .dnsLookupFailed,
+             .timedOut,
+             .internationalRoamingOff,
+             .callIsActive,
+             .dataNotAllowed:
+            return "通信に失敗しました。ネットワーク接続を確認してください。"
+        default:
+            return fallback
         }
     }
 }

@@ -86,7 +86,7 @@ final class SpeechCaptureViewModel {
             resetElapsedTimer()
             state = .idle
             statusMessage = "準備に失敗しました。"
-            errorMessage = error.localizedDescription
+            errorMessage = error.userFacingMessage(fallback: "録音の準備に失敗しました。もう一度お試しください。")
         }
     }
 
@@ -124,7 +124,7 @@ final class SpeechCaptureViewModel {
         } catch {
             state = .idle
             statusMessage = "解析に失敗しました。"
-            errorMessage = error.localizedDescription
+            errorMessage = error.userFacingMessage(fallback: "音声の解析に失敗しました。もう一度お試しください。")
         }
     }
 
@@ -156,7 +156,7 @@ final class SpeechCaptureViewModel {
             print("[SaveTranscription] error: \(error)")
             state = .readyToSave
             statusMessage = "保存に失敗しました。"
-            errorMessage = error.localizedDescription
+            errorMessage = error.userFacingMessage(fallback: "文字起こしの保存に失敗しました。しばらくしてからもう一度お試しください。")
         }
     }
 
@@ -575,7 +575,7 @@ private enum SpeechRecognitionEngine {
     case speechRecognizer
 }
 
-private enum SpeechCaptureError: LocalizedError {
+enum SpeechCaptureError: LocalizedError {
     case speechPermissionDenied
     case microphonePermissionDenied
     case localeUnavailable

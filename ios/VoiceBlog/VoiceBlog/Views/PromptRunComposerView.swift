@@ -158,7 +158,7 @@ struct PromptRunComposerView: View {
             LabeledContent("Job ID", value: String(job.id))
             LabeledContent("作成", value: job.createdAt.formatted(date: .abbreviated, time: .shortened))
 
-            if let errorMessage = job.errorMessage, !errorMessage.isEmpty {
+            if let errorMessage = job.userFacingErrorMessage {
                 Text(errorMessage)
                     .font(.subheadline)
                     .foregroundStyle(.red)
@@ -224,7 +224,7 @@ struct PromptRunComposerView: View {
                 selectedPromptId = prompts.first?.id
             }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userFacingMessage(fallback: "プロンプトの取得に失敗しました。しばらくしてからもう一度お試しください。")
         }
     }
 
@@ -250,7 +250,7 @@ struct PromptRunComposerView: View {
                 await startPolling(jobId: created.id)
             }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userFacingMessage(fallback: "AI下書きの開始に失敗しました。しばらくしてからもう一度お試しください。")
         }
     }
 
@@ -275,7 +275,7 @@ struct PromptRunComposerView: View {
                     }
                 } catch {
                     await MainActor.run {
-                        errorMessage = error.localizedDescription
+                        errorMessage = error.userFacingMessage(fallback: "AI下書きの取得に失敗しました。しばらくしてからもう一度お試しください。")
                     }
                     return
                 }
@@ -299,7 +299,7 @@ struct PromptRunComposerView: View {
                 token: token
             )
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userFacingMessage(fallback: "記事の保存に失敗しました。しばらくしてからもう一度お試しください。")
         }
     }
 

@@ -229,7 +229,7 @@ struct ArticleShareView: View {
                 shareTargets = try await APIClient.shared.getShareTargets(articleId: article.id, token: token)
             }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userFacingMessage(fallback: "共有設定の取得に失敗しました。しばらくしてからもう一度お試しください。")
         }
     }
 

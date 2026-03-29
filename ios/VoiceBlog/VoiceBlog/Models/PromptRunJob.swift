@@ -23,6 +23,14 @@ struct PromptRunJob: Identifiable, Sendable {
     var isCompleted: Bool {
         status == "completed"
     }
+
+    var userFacingErrorMessage: String? {
+        guard isFailed else {
+            return nil
+        }
+
+        return "AIで下書きを生成できませんでした。しばらくしてからもう一度お試しください。"
+    }
 }
 
 extension PromptRunJob: Codable {

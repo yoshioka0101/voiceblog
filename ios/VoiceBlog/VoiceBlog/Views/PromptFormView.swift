@@ -104,7 +104,7 @@ struct PromptFormView: View {
             dismiss()
         } catch {
             isSaving = false
-            errorMessage = error.localizedDescription
+            errorMessage = error.userFacingMessage(fallback: "プロンプトの保存に失敗しました。入力内容を確認してもう一度お試しください。")
         }
     }
 }

@@ -228,7 +228,7 @@ struct PromptListView: View {
             let token = try await auth.fetchIDToken()
             prompts = try await APIClient.shared.getListPrompts(token: token)
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userFacingMessage(fallback: "プロンプトの取得に失敗しました。しばらくしてからもう一度お試しください。")
         }
     }
 
@@ -263,7 +263,7 @@ struct PromptListView: View {
             try await APIClient.shared.deletePrompt(id: prompt.id, token: token)
             prompts.removeAll { $0.id == prompt.id }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userFacingMessage(fallback: "プロンプトの削除に失敗しました。しばらくしてからもう一度お試しください。")
         }
     }
 }

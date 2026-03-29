@@ -40,16 +40,16 @@ func NewUseCase(repo entity.Repository, encryptor *crypto.AESEncryptor, verifier
 
 func (uc *UseCase) StoreToken(ctx context.Context, userID int64, provider, plaintext string) error {
 	if !supportedProviders[provider] {
-		return apperr.BadRequest(fmt.Sprintf("unsupported provider: %s", provider))
+		return apperr.BadRequestWithCode("unsupported_provider", fmt.Sprintf("unsupported provider: %s", provider))
 	}
 	if plaintext == "" {
-		return apperr.BadRequest("token must not be empty")
+		return apperr.BadRequestWithCode("token_required", "token must not be empty")
 	}
 
 	// Verify token before storing
 	if v, ok := uc.verifiers[provider]; ok {
 		if err := v.Verify(ctx, plaintext); err != nil {
-			return apperr.BadRequest(fmt.Sprintf("token verification failed: %s", err.Error()))
+			return apperr.BadRequestWithCode("token_verification_failed", "token verification failed")
 		}
 	}
 
@@ -73,7 +73,7 @@ func (uc *UseCase) StoreToken(ctx context.Context, userID int64, provider, plain
 
 func (uc *UseCase) DeleteToken(ctx context.Context, userID int64, provider string) error {
 	if !supportedProviders[provider] {
-		return apperr.BadRequest(fmt.Sprintf("unsupported provider: %s", provider))
+		return apperr.BadRequestWithCode("unsupported_provider", fmt.Sprintf("unsupported provider: %s", provider))
 	}
 
 	return uc.repo.DeleteByUserIDAndProvider(ctx, userID, provider)
@@ -107,7 +107,7 @@ func (uc *UseCase) DecryptToken(ctx context.Context, userID int64, provider stri
 		return "", fmt.Errorf("find token: %w", err)
 	}
 	if token == nil {
-		return "", apperr.BadRequest(fmt.Sprintf("%s is not connected", provider))
+		return "", apperr.BadRequestWithCode("provider_not_connected", fmt.Sprintf("%s is not connected", provider))
 	}
 
 	plaintext, err := uc.encryptor.Decrypt(token.EncryptedToken, token.Nonce)

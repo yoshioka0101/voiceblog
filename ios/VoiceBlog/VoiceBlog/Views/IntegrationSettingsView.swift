@@ -379,10 +379,13 @@ struct IntegrationSettingsView: View {
             switch apiError {
             case .unauthorized:
                 return "認証に失敗しました。再度ログインしてください。"
-            case .serverError(statusCode: 400, let body):
-                if body.contains("verification failed") {
-                    return "\(name)への接続に失敗しました。トークンが正しいか確認してください。"
-                }
+            case .serverError(statusCode: 400, _, let code) where code == "token_verification_failed":
+                return "\(name)への接続に失敗しました。トークンが正しいか確認してください。"
+            case .serverError(statusCode: 400, _, let code) where code == "token_required":
+                return "トークンを入力してください。"
+            case .serverError(statusCode: 400, _, let code) where code == "unsupported_provider":
+                return "\(name)の設定に対応していません。アプリを更新してもう一度お試しください。"
+            case .serverError(statusCode: 400, _, _):
                 return "トークンの形式が正しくありません。\(name)の手順を確認してください。"
             default:
                 return "\(name)の\(action)に失敗しました。しばらくしてからもう一度お試しください。"
@@ -398,7 +401,8 @@ extension APIError: Equatable {
         case (.unauthorized, .unauthorized): return true
         case (.notFound, .notFound): return true
         case (.invalidConfiguration(let a), .invalidConfiguration(let b)): return a == b
-        case (.serverError(let a1, let a2), .serverError(let b1, let b2)): return a1 == b1 && a2 == b2
+        case (.serverError(let a1, let a2, let a3), .serverError(let b1, let b2, let b3)):
+            return a1 == b1 && a2 == b2 && a3 == b3
         default: return false
         }
     }

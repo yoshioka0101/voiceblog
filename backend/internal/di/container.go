@@ -3,6 +3,7 @@ package di
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	articleEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/article"
 	shareEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/articlesharetarget"
@@ -53,7 +54,7 @@ type Container struct {
 	UseCases     *UseCases
 }
 
-func New(db *sql.DB, googleClientID, geminiAPIKey, tokenEncryptionKey string) *Container {
+func New(db *sql.DB, googleClientID, geminiAPIKey, tokenEncryptionKey string) (*Container, error) {
 	userRepo := postgresql.NewUserRepository(db)
 	verifier := googleauth.NewTokenVerifier(googleClientID)
 	promptRepo := postgresql.NewPromptRepository(db)
@@ -85,29 +86,31 @@ func New(db *sql.DB, googleClientID, geminiAPIKey, tokenEncryptionKey string) *C
 
 	if tokenEncryptionKey != "" {
 		encryptor, err := crypto.NewAESEncryptor(tokenEncryptionKey)
-		if err == nil {
-			qiitaClient := qiita.NewClient()
-			hatenaClient := hatena.NewClient()
-
-			verifiers := map[string]integrationUseCase.Verifier{
-				"qiita":  &qiitaVerifier{client: qiitaClient},
-				"hatena": &hatenaVerifier{client: hatenaClient},
-			}
-			integrationUC := integrationUseCase.NewUseCase(repos.ExternalToken, encryptor, verifiers)
-			useCases.Integration = integrationUC
-
-			publishers := map[string]publishUseCase.Publisher{
-				"qiita":  &qiitaAdapter{client: qiitaClient},
-				"hatena": &hatenaAdapter{client: hatenaClient},
-			}
-			useCases.Publish = publishUseCase.NewUseCase(repos.Article, repos.ArticleShareTarget, integrationUC, publishers)
+		if err != nil {
+			return nil, fmt.Errorf("create token encryptor: %w", err)
 		}
+
+		qiitaClient := qiita.NewClient()
+		hatenaClient := hatena.NewClient()
+
+		verifiers := map[string]integrationUseCase.Verifier{
+			"qiita":  &qiitaVerifier{client: qiitaClient},
+			"hatena": &hatenaVerifier{client: hatenaClient},
+		}
+		integrationUC := integrationUseCase.NewUseCase(repos.ExternalToken, encryptor, verifiers)
+		useCases.Integration = integrationUC
+
+		publishers := map[string]publishUseCase.Publisher{
+			"qiita":  &qiitaAdapter{client: qiitaClient},
+			"hatena": &hatenaAdapter{client: hatenaClient},
+		}
+		useCases.Publish = publishUseCase.NewUseCase(repos.Article, repos.ArticleShareTarget, integrationUC, publishers)
 	}
 
 	return &Container{
 		Repositories: repos,
 		UseCases:     useCases,
-	}
+	}, nil
 }
 
 type qiitaVerifier struct {

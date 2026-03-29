@@ -84,7 +84,7 @@ struct ArticleShareView: View {
 
             HStack(spacing: 12) {
                 Button {
-                    UIPasteboard.general.string = markdownText
+                    copyTextToPasteboard(markdownText)
                     showCopiedToast = true
                     Task {
                         try? await Task.sleep(for: .seconds(2))
@@ -263,12 +263,10 @@ struct ArticleShareView: View {
             let name = providerDisplayName(provider)
             if let apiError = error as? APIError {
                 switch apiError {
-                case .serverError(statusCode: 400, let body):
-                    if body.contains("not connected") {
+                case .serverError(statusCode: 400, _, let code) where code == "provider_not_connected":
                         errorMessage = "\(name)のトークンが無効になっています。外部連携設定から再設定してください。"
-                    } else {
-                        errorMessage = "\(name)への投稿に失敗しました。トークンの設定を確認してください。"
-                    }
+                case .serverError(statusCode: 400, _, let code) where code == "unsupported_provider":
+                    errorMessage = "\(name)への投稿先の設定に問題があります。アプリを更新してもう一度お試しください。"
                 case .unauthorized:
                     errorMessage = "認証に失敗しました。再度ログインしてください。"
                 default:

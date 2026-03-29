@@ -39,7 +39,11 @@ func main() {
 		}
 	}()
 
-	srv := server.New(dbConn, &cfg, log)
+	srv, err := server.New(dbConn, &cfg, log)
+	if err != nil {
+		log.Error("failed to create server", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
 	go func() {
 		if err := srv.Run(addr); err != nil && err != http.ErrServerClosed {
 			log.Error("server stopped", slog.String("error", err.Error()))

@@ -18,15 +18,18 @@ type Server struct {
 	http   *http.Server
 }
 
-func New(db *sql.DB, cfg *config.Config, log *slog.Logger) *Server {
+func New(db *sql.DB, cfg *config.Config, log *slog.Logger) (*Server, error) {
 	configureGinLogging(log)
 	router := gin.New()
 	router.Use(requestLogger(log), recoveryLogger(log))
 
-	container := di.New(db, cfg.GoogleClientID, cfg.GeminiAPIKey, cfg.TokenEncryptionKey)
+	container, err := di.New(db, cfg.GoogleClientID, cfg.GeminiAPIKey, cfg.TokenEncryptionKey)
+	if err != nil {
+		return nil, err
+	}
 	handler.RegisterRoutes(router, container)
 
-	return &Server{engine: router}
+	return &Server{engine: router}, nil
 }
 
 func (s *Server) Run(addr string) error {

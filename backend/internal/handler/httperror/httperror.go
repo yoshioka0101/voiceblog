@@ -38,7 +38,7 @@ func FromError(c *gin.Context, err error, fallbackMessage string) {
 				"path", c.Request.URL.Path,
 			)
 		}
-		JSON(c, appErr.Status, appErr.Message)
+		JSON(c, appErr.Status, appErr.Message, appErr.Code)
 		return
 	}
 
@@ -48,17 +48,21 @@ func FromError(c *gin.Context, err error, fallbackMessage string) {
 		"path", c.Request.URL.Path,
 		"message", fallbackMessage,
 	)
-	JSON(c, http.StatusInternalServerError, fallbackMessage)
+	JSON(c, http.StatusInternalServerError, fallbackMessage, "internal_error")
 }
 
-func JSON(c *gin.Context, status int, message string) {
-	c.JSON(status, gin.H{"error": message})
+func JSON(c *gin.Context, status int, message string, codes ...string) {
+	resp := gin.H{"error": message}
+	if len(codes) > 0 && codes[0] != "" {
+		resp["code"] = codes[0]
+	}
+	c.JSON(status, resp)
 }
 
 func Unauthorized(c *gin.Context) {
-	JSON(c, http.StatusUnauthorized, "unauthorized")
+	JSON(c, http.StatusUnauthorized, "unauthorized", "unauthorized")
 }
 
 func BadRequest(c *gin.Context, message string) {
-	JSON(c, http.StatusBadRequest, message)
+	JSON(c, http.StatusBadRequest, message, "bad_request")
 }

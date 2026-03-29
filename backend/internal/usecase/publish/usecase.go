@@ -21,10 +21,10 @@ type Publisher interface {
 }
 
 type UseCase struct {
-	articleRepo    articleEntity.Repository
-	shareRepo      shareEntity.Repository
-	integrationUC  *integrationUsecase.UseCase
-	publishers     map[string]Publisher
+	articleRepo   articleEntity.Repository
+	shareRepo     shareEntity.Repository
+	integrationUC *integrationUsecase.UseCase
+	publishers    map[string]Publisher
 }
 
 func NewUseCase(
@@ -52,7 +52,7 @@ func (uc *UseCase) PublishArticle(ctx context.Context, userID, articleID int64, 
 
 	publisher, ok := uc.publishers[provider]
 	if !ok {
-		return nil, apperr.BadRequest(fmt.Sprintf("unsupported provider: %s", provider))
+		return nil, apperr.BadRequestWithCode("unsupported_provider", fmt.Sprintf("unsupported provider: %s", provider))
 	}
 
 	token, err := uc.integrationUC.DecryptToken(ctx, userID, provider)

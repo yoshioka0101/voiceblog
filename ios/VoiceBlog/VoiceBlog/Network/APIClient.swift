@@ -4,7 +4,7 @@ enum APIError: LocalizedError {
     case unauthorized
     case invalidConfiguration(String)
     case notFound
-    case serverError(statusCode: Int, body: String)
+    case serverError(statusCode: Int, message: String, code: String?)
     case networkError(Error)
 
     var errorDescription: String? {
@@ -15,8 +15,11 @@ enum APIError: LocalizedError {
             return message
         case .notFound:
             return "この機能はまだ利用できません。"
-        case .serverError(let code, _):
-            if code == 400 {
+        case .serverError(let statusCode, let message, _):
+            if !message.isEmpty {
+                return message
+            }
+            if statusCode == 400 {
                 return "入力内容に問題があります。内容を確認してください。"
             }
             return "サーバーで問題が発生しました。しばらくしてからもう一度お試しください。"
@@ -106,7 +109,12 @@ actor APIClient {
             throw APIError.notFound
         default:
             let body = String(data: data, encoding: .utf8) ?? ""
-            throw APIError.serverError(statusCode: http.statusCode, body: body)
+            let payload = try? decoder.decode(APIErrorPayload.self, from: data)
+            throw APIError.serverError(
+                statusCode: http.statusCode,
+                message: payload?.error ?? body,
+                code: payload?.code
+            )
         }
     }
 
@@ -216,6 +224,11 @@ actor APIClient {
 
 private struct EmptyResponse: Decodable, Sendable {
     nonisolated init() {}
+}
+
+private struct APIErrorPayload: Decodable, Sendable {
+    let error: String
+    let code: String?
 }
 
 private let apiDateFormatter: ISO8601DateFormatter = {

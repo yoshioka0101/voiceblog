@@ -60,7 +60,7 @@ struct ArticleDetailView: View {
 
                     HStack(spacing: 12) {
                         Button {
-                            UIPasteboard.general.string = markdownText
+                            copyTextToPasteboard(markdownText)
                             showCopiedToast = true
                             Task {
                                 try? await Task.sleep(for: .seconds(2))

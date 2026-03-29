@@ -73,7 +73,6 @@ struct SpeechCaptureView: View {
             HStack(spacing: 8) {
                 AppTag(title: statusLabel, tint: statusTint)
                 AppTag(title: elapsedLabel, tint: .blue)
-                AppTag(title: "\(viewModel.segments.count) 区間", tint: .orange)
             }
 
             VStack(spacing: 12) {

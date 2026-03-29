@@ -127,7 +127,7 @@ func (uc *UseCase) createArticleFromPromptRunJob(ctx context.Context, article *e
 	return uc.repo.UpsertArticleByPromptRunJobID(ctx, article)
 }
 
-func (uc *UseCase) GenerateArticle(ctx context.Context, input GenerateArticleInput) (*entity.Article, error) {
+func (uc *UseCase) GenerateArticle(ctx context.Context, input GenerateArticleInput) (*articlegen.GeneratedArticle, error) {
 	if uc.promptRepo == nil || uc.generator == nil {
 		return nil, apperr.InternalError("article generator is not configured")
 	}
@@ -163,11 +163,10 @@ func (uc *UseCase) GenerateArticle(ctx context.Context, input GenerateArticleInp
 		return nil, err
 	}
 
-	return uc.repo.CreateArticle(ctx, &entity.Article{
-		UserID:  input.UserID,
+	return &articlegen.GeneratedArticle{
 		Title:   title,
 		Content: content,
-	})
+	}, nil
 }
 
 func (uc *UseCase) ListArticlesByUserID(ctx context.Context, userID int64) ([]*entity.Article, error) {

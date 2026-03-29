@@ -128,21 +128,8 @@ func TestDeleteArticle(t *testing.T) {
 func TestGenerateArticle(t *testing.T) {
 	repo := &articleRepositoryStub{
 		createArticleFunc: func(_ context.Context, value *entity.Article) (*entity.Article, error) {
-			if value.UserID != 9 {
-				t.Fatalf("UserID = %d, want 9", value.UserID)
-			}
-			if value.Title != "generated title" {
-				t.Fatalf("Title = %q", value.Title)
-			}
-			if value.Content != "generated content" {
-				t.Fatalf("Content = %q", value.Content)
-			}
-			return &entity.Article{
-				ID:      31,
-				UserID:  value.UserID,
-				Title:   value.Title,
-				Content: value.Content,
-			}, nil
+			t.Fatalf("CreateArticle called unexpectedly: %#v", value)
+			return nil, nil
 		},
 	}
 	promptRepo := &promptRepositoryStub{
@@ -184,8 +171,11 @@ func TestGenerateArticle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GenerateArticle failed: %v", err)
 	}
-	if value.ID != 31 {
-		t.Fatalf("ID = %d, want 31", value.ID)
+	if value.Title != "generated title" {
+		t.Fatalf("Title = %q, want generated title", value.Title)
+	}
+	if value.Content != "generated content" {
+		t.Fatalf("Content = %q, want generated content", value.Content)
 	}
 }
 

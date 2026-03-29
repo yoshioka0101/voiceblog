@@ -8,7 +8,7 @@ struct PromptRunComposerView: View {
     @State private var selectedPromptId: Int64?
     @State private var isLoading = false
     @State private var isGenerating = false
-    @State private var generatedArticle: Article?
+    @State private var generatedArticle: GeneratedArticle?
     @State private var showGeneratedArticle = false
     @State private var errorMessage: String?
 
@@ -30,9 +30,6 @@ struct PromptRunComposerView: View {
                     promptSelectionSection
                 }
 
-                if let generatedArticle {
-                    generatedArticleSection(generatedArticle)
-                }
             }
             .padding(20)
         }
@@ -54,7 +51,7 @@ struct PromptRunComposerView: View {
                             await generateArticle()
                         }
                     }
-                    .disabled(selectedPrompt == nil)
+                    .disabled(selectedPrompt == nil || isGenerating)
                 }
             }
         }
@@ -63,7 +60,7 @@ struct PromptRunComposerView: View {
         }
         .navigationDestination(isPresented: $showGeneratedArticle) {
             if let generatedArticle {
-                ArticleDetailView(auth: auth, article: generatedArticle)
+                GeneratedArticlePreviewView(auth: auth, generatedArticle: generatedArticle)
             }
         }
         .alert("エラー", isPresented: isShowingError) {
@@ -96,7 +93,6 @@ struct PromptRunComposerView: View {
                 .font(.headline)
 
             HStack(spacing: 8) {
-                AppTag(title: "\(transcription.segmentsJson.count) 区間", tint: .teal)
                 AppTag(title: "\(transcription.fullText.count) 文字", tint: .blue)
             }
 
@@ -127,33 +123,6 @@ struct PromptRunComposerView: View {
         }
     }
 
-    private func generatedArticleSection(_ article: Article) -> some View {
-        AppSurface(accent: .green) {
-            Text("生成した記事")
-                .font(.headline)
-
-            HStack(spacing: 8) {
-                AppTag(title: "保存済み", tint: .green)
-                AppTag(title: article.updatedAt.formatted(date: .abbreviated, time: .shortened), tint: .blue)
-            }
-
-            Text(article.title)
-                .font(.title3.weight(.semibold))
-
-            Text(article.content)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .lineLimit(8)
-
-            Button {
-                showGeneratedArticle = true
-            } label: {
-                Label("記事詳細を開く", systemImage: "doc.text.magnifyingglass")
-            }
-            .buttonStyle(AppSecondaryButtonStyle(tint: .indigo))
-        }
-    }
-
     @MainActor
     private func loadPrompts() async {
         isLoading = true
@@ -172,7 +141,7 @@ struct PromptRunComposerView: View {
 
     @MainActor
     private func generateArticle() async {
-        guard let selectedPrompt else {
+        guard !isGenerating, let selectedPrompt else {
             return
         }
 
@@ -191,6 +160,136 @@ struct PromptRunComposerView: View {
             showGeneratedArticle = true
         } catch {
             errorMessage = error.userFacingMessage(fallback: "AI記事の生成に失敗しました。しばらくしてからもう一度お試しください。")
+        }
+    }
+}
+
+private struct GeneratedArticlePreviewView: View {
+    let auth: AuthManager
+
+    @State private var draft: ArticleDraft
+    @State private var createdArticle: Article?
+    @State private var showSavedArticle = false
+    @State private var isSaving = false
+    @State private var showCopiedToast = false
+    @State private var errorMessage: String?
+
+    init(auth: AuthManager, generatedArticle: GeneratedArticle) {
+        self.auth = auth
+        _draft = State(initialValue: ArticleDraft(generatedArticle: generatedArticle))
+    }
+
+    private var markdownText: String {
+        "# \(draft.title)\n\n\(draft.content)"
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                AppSurface(accent: .green) {
+                    Text("生成結果の記事")
+                        .font(.headline)
+
+                    Text("内容を確認してから記事として保存できます。")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    AppTag(title: "\(draft.content.count) 文字", tint: .green)
+                }
+
+                AppSurface(accent: .blue) {
+                    Text(draft.title)
+                        .font(.title2.weight(.bold))
+
+                    Text(draft.content)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                }
+
+                AppSurface(accent: .teal) {
+                    if isSaving {
+                        ProgressView()
+                    } else {
+                        Button {
+                            Task {
+                                await saveArticle()
+                            }
+                        } label: {
+                            Label("記事に保存", systemImage: "square.and.arrow.down")
+                        }
+                        .buttonStyle(AppPrimaryButtonStyle(tint: .green))
+                    }
+
+                    Button {
+                        copyTextToPasteboard(markdownText)
+                        showCopiedToast = true
+                        Task {
+                            try? await Task.sleep(for: .seconds(2))
+                            showCopiedToast = false
+                        }
+                    } label: {
+                        Label("コピー", systemImage: "doc.on.doc")
+                    }
+                    .buttonStyle(AppSecondaryButtonStyle(tint: .teal))
+
+                    if showCopiedToast {
+                        Text("Markdown をコピーしました")
+                            .font(.subheadline)
+                            .foregroundStyle(.teal)
+                            .transition(.opacity)
+                    }
+                }
+            }
+            .padding(20)
+        }
+        .background(
+            LinearGradient(
+                colors: [Color.green.opacity(0.08), Color.clear],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .navigationTitle("生成結果")
+        .navigationDestination(isPresented: $showSavedArticle) {
+            if let createdArticle {
+                ArticleDetailView(auth: auth, article: createdArticle)
+            }
+        }
+        .alert("エラー", isPresented: isShowingError) {
+            Button("閉じる", role: .cancel) {
+                errorMessage = nil
+            }
+        } message: {
+            Text(errorMessage ?? "")
+        }
+    }
+
+    private var isShowingError: Binding<Bool> {
+        Binding(
+            get: { errorMessage != nil },
+            set: { newValue in
+                if !newValue {
+                    errorMessage = nil
+                }
+            }
+        )
+    }
+
+    @MainActor
+    private func saveArticle() async {
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            let token = try await auth.fetchIDToken()
+            let article = try await APIClient.shared.createArticle(
+                request: ArticleCreateRequest(title: draft.title, content: draft.content, promptRunJobId: nil),
+                token: token
+            )
+            createdArticle = article
+            showSavedArticle = true
+        } catch {
+            errorMessage = error.userFacingMessage(fallback: "記事の保存に失敗しました。しばらくしてからもう一度お試しください。")
         }
     }
 }

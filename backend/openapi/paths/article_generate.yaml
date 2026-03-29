@@ -10,12 +10,12 @@ post:
         schema:
           $ref: ../components/schemas/article_generate_request.yaml
   responses:
-    "201":
-      description: Created
+    "200":
+      description: OK
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/article.yaml
+            $ref: ../components/schemas/generated_article.yaml
     "400":
       description: Bad Request
     "401":

@@ -31,6 +31,8 @@ components:
       $ref: ./components/schemas/article_list_response.yaml
     CreateArticleRequest:
       $ref: ./components/schemas/article_create_request.yaml
+    GeneratedArticleResponse:
+      $ref: ./components/schemas/generated_article.yaml
     GenerateArticleRequest:
       $ref: ./components/schemas/article_generate_request.yaml
     UpdateArticleRequest:

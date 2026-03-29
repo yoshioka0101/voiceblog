@@ -72,11 +72,6 @@ struct ArticleListView: View {
         .task {
             await loadArticles()
         }
-        .onAppear {
-            Task {
-                await loadArticles()
-            }
-        }
         .refreshable {
             await loadArticles()
         }
@@ -120,6 +115,10 @@ struct ArticleListView: View {
 
     @MainActor
     private func loadArticles() async {
+        guard !isLoading else {
+            return
+        }
+
         isLoading = true
         defer { isLoading = false }
 

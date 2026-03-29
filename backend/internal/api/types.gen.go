@@ -32,6 +32,9 @@ type CreateTranscriptionRequest = TranscriptionCreateRequest
 // GenerateArticleRequest defines model for GenerateArticleRequest.
 type GenerateArticleRequest = ArticleGenerateRequest
 
+// GeneratedArticleResponse defines model for GeneratedArticleResponse.
+type GeneratedArticleResponse = GeneratedArticle
+
 // HealthResponse defines model for HealthResponse.
 type HealthResponse = Health
 
@@ -88,6 +91,12 @@ type ArticleListResponse = []Article
 type ArticleUpdateRequest struct {
 	Content *string `json:"content,omitempty"`
 	Title   *string `json:"title,omitempty"`
+}
+
+// GeneratedArticle defines model for generated_article.
+type GeneratedArticle struct {
+	Content string `json:"content"`
+	Title   string `json:"title"`
 }
 
 // Health defines model for health.

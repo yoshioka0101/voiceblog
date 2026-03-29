@@ -94,7 +94,10 @@ func (h *Handler) GenerateArticle(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, presenter.Article(value))
+	c.JSON(http.StatusOK, api.GeneratedArticleResponse{
+		Title:   value.Title,
+		Content: value.Content,
+	})
 }
 
 func (h *Handler) GetArticle(c *gin.Context) {

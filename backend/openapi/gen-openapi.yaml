@@ -228,12 +228,12 @@ paths:
             schema:
               $ref: '#/components/schemas/article_generate_request'
       responses:
-        '201':
-          description: Created
+        '200':
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/article'
+                $ref: '#/components/schemas/generated_article'
         '400':
           description: Bad Request
         '401':
@@ -349,6 +349,8 @@ components:
       $ref: '#/components/schemas/article_list_response'
     CreateArticleRequest:
       $ref: '#/components/schemas/article_create_request'
+    GeneratedArticleResponse:
+      $ref: '#/components/schemas/generated_article'
     GenerateArticleRequest:
       $ref: '#/components/schemas/article_generate_request'
     UpdateArticleRequest:
@@ -560,6 +562,16 @@ components:
       required:
         - transcription_id
         - prompt_id
+    generated_article:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+      required:
+        - title
+        - content
     article_update_request:
       type: object
       properties:

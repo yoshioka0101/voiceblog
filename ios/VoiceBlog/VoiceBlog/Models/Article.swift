@@ -50,6 +50,13 @@ extension ArticleGenerateRequest: Codable {
     }
 }
 
+struct GeneratedArticle: Sendable {
+    let title: String
+    let content: String
+}
+
+extension GeneratedArticle: Codable {}
+
 struct ArticleUpdateRequest: Sendable {
     let title: String?
     let content: String?
@@ -66,5 +73,10 @@ struct ArticleDraft: Sendable {
     init(article: Article) {
         title = article.title
         content = article.content
+    }
+
+    init(generatedArticle: GeneratedArticle) {
+        title = generatedArticle.title
+        content = generatedArticle.content
     }
 }

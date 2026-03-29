@@ -61,7 +61,7 @@ struct IntegrationSettingsView: View {
             }
             Button("キャンセル", role: .cancel) {}
         } message: {
-            Text("保存済みのトークンが削除されます。再度投稿するにはトークンを設定し直す必要があります。")
+            Text("保存済みの\(credentialDisplayName(removeProvider ?? ""))が削除されます。再度投稿するには\(credentialDisplayName(removeProvider ?? ""))を設定し直す必要があります。")
         }
     }
 
@@ -79,7 +79,7 @@ struct IntegrationSettingsView: View {
             Label("外部ブログへの投稿", systemImage: "link.badge.plus")
                 .font(.title3.weight(.semibold))
 
-            Text("Qiita やはてなブログのアクセストークンを登録すると、VoiceBlog で作成した記事をそのまま投稿できます。")
+            Text("Qiita のアクセストークンや、はてなブログの認証情報を登録すると、VoiceBlog で作成した記事をそのまま投稿できます。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -139,7 +139,7 @@ struct IntegrationSettingsView: View {
             }
 
             if savedProvider == integration.provider {
-                Label("トークンを保存しました", systemImage: "checkmark.circle.fill")
+                Label("\(credentialDisplayName(integration.provider))を保存しました", systemImage: "checkmark.circle.fill")
                     .font(.subheadline)
                     .foregroundStyle(.green)
                     .transition(.opacity)
@@ -158,7 +158,7 @@ struct IntegrationSettingsView: View {
                 editingProvider = provider
                 tokenInput = ""
             } label: {
-                Label("トークンを登録する", systemImage: "key.fill")
+                Label("\(credentialDisplayName(provider))を登録する", systemImage: "key.fill")
             }
             .buttonStyle(AppPrimaryButtonStyle(tint: .purple))
         }
@@ -171,7 +171,7 @@ struct IntegrationSettingsView: View {
                 editingProvider = provider
                 tokenInput = ""
             } label: {
-                Label("トークンを変更", systemImage: "key")
+                Label("\(credentialDisplayName(provider))を変更", systemImage: "key")
             }
             .buttonStyle(AppSecondaryButtonStyle(tint: .purple))
 
@@ -356,6 +356,15 @@ struct IntegrationSettingsView: View {
         }
     }
 
+    private func credentialDisplayName(_ provider: String) -> String {
+        switch provider {
+        case "hatena":
+            return "認証情報"
+        default:
+            return "トークン"
+        }
+    }
+
     private func tokenPlaceholder(for provider: String) -> String {
         switch provider {
         case "qiita": return "Qiita のアクセストークンを貼り付け"
@@ -371,13 +380,13 @@ struct IntegrationSettingsView: View {
             case .unauthorized:
                 return "認証に失敗しました。再度ログインしてください。"
             case .serverError(statusCode: 400, _, let code) where code == "token_verification_failed":
-                return "\(name)への接続に失敗しました。トークンが正しいか確認してください。"
+                return "\(name)への接続に失敗しました。\(credentialDisplayName(provider))が正しいか確認してください。"
             case .serverError(statusCode: 400, _, let code) where code == "token_required":
-                return "トークンを入力してください。"
+                return "\(credentialDisplayName(provider))を入力してください。"
             case .serverError(statusCode: 400, _, let code) where code == "unsupported_provider":
                 return "\(name)の設定に対応していません。アプリを更新してもう一度お試しください。"
             case .serverError(statusCode: 400, _, _):
-                return "トークンの形式が正しくありません。\(name)の手順を確認してください。"
+                return "\(credentialDisplayName(provider))の形式が正しくありません。\(name)の手順を確認してください。"
             default:
                 return "\(name)の\(action)に失敗しました。しばらくしてからもう一度お試しください。"
             }

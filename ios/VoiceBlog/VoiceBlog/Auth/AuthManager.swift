@@ -232,16 +232,11 @@ final class AuthManager {
     }
 
     private func isUserCanceledSignIn(_ error: Error) -> Bool {
-        let nsError = error as NSError
-        if nsError.domain == kGIDSignInErrorDomain && nsError.code == -5 {
+        if let signInError = error as? GIDSignInError, signInError.code == .canceled {
             return true
         }
 
-        if nsError.localizedDescription == "The user canceled the sign-in flow." {
-            return true
-        }
-
-        if let underlyingError = nsError.userInfo[NSUnderlyingErrorKey] as? NSError {
+        if let underlyingError = (error as NSError).userInfo[NSUnderlyingErrorKey] as? NSError {
             return isUserCanceledSignIn(underlyingError)
         }
 

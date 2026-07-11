@@ -2,6 +2,7 @@ import AVFAudio
 import CoreMedia
 import Foundation
 import Observation
+import os
 import Speech
 
 @MainActor
@@ -28,6 +29,7 @@ final class SpeechCaptureViewModel {
     private let auth: AuthManager
     private let recorder = SpeechAudioRecorder()
     private let transcriber = SpeechAnalyzerTranscriber()
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "VoiceBlog", category: "SpeechCapture")
 
     private var recordingStartedAt: Date?
     private var elapsedTask: Task<Void, Never>?
@@ -138,9 +140,9 @@ final class SpeechCaptureViewModel {
             state = .saving
             statusMessage = "文字起こしを保存しています。"
 
-            print("[SaveTranscription] fetching token...")
+            logger.debug("saveTranscription: fetching token")
             let token = try await auth.fetchIDToken()
-            print("[SaveTranscription] token acquired, sending request...")
+            logger.debug("saveTranscription: token acquired, sending request")
             let created = try await APIClient.shared.createTranscription(
                 request: TranscriptionCreateRequest(
                     fullText: transcriptText,
@@ -153,7 +155,7 @@ final class SpeechCaptureViewModel {
             state = .saved
             statusMessage = "文字起こしを保存しました。"
         } catch {
-            print("[SaveTranscription] error: \(error)")
+            logger.error("saveTranscription failed: \(error, privacy: .private)")
             state = .readyToSave
             statusMessage = "保存に失敗しました。"
             errorMessage = error.userFacingMessage(fallback: "文字起こしの保存に失敗しました。しばらくしてからもう一度お試しください。")
@@ -412,37 +414,36 @@ private actor SpeechAnalyzerTranscriber {
         let request = SFSpeechURLRecognitionRequest(url: fileURL)
         request.shouldReportPartialResults = true
 
-        return try await withCheckedThrowingContinuation { continuation in
-            var hasResumed = false
-            let recognitionTask = recognizer.recognitionTask(with: request) { result, error in
-                if let result {
-                    let segments = Self.makeSegments(from: result.bestTranscription.segments)
-                    let fullText = result.bestTranscription.formattedString.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !fullText.isEmpty {
-                        progressHandler?(fullText, segments)
+        let coordinator = SpeechRecognitionCoordinator()
+
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                let recognitionTask = recognizer.recognitionTask(with: request) { result, error in
+                    if let result {
+                        let segments = Self.makeSegments(from: result.bestTranscription.segments)
+                        let fullText = result.bestTranscription.formattedString.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !fullText.isEmpty {
+                            progressHandler?(fullText, segments)
+                        }
+
+                        if result.isFinal, coordinator.takeResumePermission() {
+                            continuation.resume(returning: SpeechAnalysisResult(
+                                fullText: fullText,
+                                segments: segments,
+                                engine: .speechRecognizer
+                            ))
+                        }
                     }
 
-                    if result.isFinal, !hasResumed {
-                        hasResumed = true
-                        continuation.resume(returning: SpeechAnalysisResult(
-                            fullText: fullText,
-                            segments: segments,
-                            engine: .speechRecognizer
-                        ))
+                    if let error, coordinator.takeResumePermission() {
+                        continuation.resume(throwing: error)
                     }
                 }
 
-                if let error, !hasResumed {
-                    hasResumed = true
-                    continuation.resume(throwing: error)
-                }
+                coordinator.register(recognitionTask)
             }
-
-            if Task.isCancelled, !hasResumed {
-                recognitionTask.cancel()
-                hasResumed = true
-                continuation.resume(throwing: CancellationError())
-            }
+        } onCancel: {
+            coordinator.cancel()
         }
     }
 
@@ -561,6 +562,46 @@ private actor SpeechAnalyzerTranscriber {
             .compactMap { $0["text"]?.stringValue?.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
             .joined(separator: " ")
+    }
+}
+
+// 認識コールバックは内部キューから届き、キャンセルは別タスクから飛んでくるため、
+// resume の一回性とタスクの受け渡しをロックで直列化する。
+private final class SpeechRecognitionCoordinator: @unchecked Sendable {
+    private let lock = NSLock()
+    private var recognitionTask: SFSpeechRecognitionTask?
+    private var hasResumed = false
+    private var isCancelled = false
+
+    func register(_ task: SFSpeechRecognitionTask) {
+        lock.lock()
+        recognitionTask = task
+        let shouldCancel = isCancelled
+        lock.unlock()
+
+        if shouldCancel {
+            task.cancel()
+        }
+    }
+
+    func takeResumePermission() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+
+        if hasResumed {
+            return false
+        }
+        hasResumed = true
+        return true
+    }
+
+    func cancel() {
+        lock.lock()
+        isCancelled = true
+        let task = recognitionTask
+        lock.unlock()
+
+        task?.cancel()
     }
 }
 

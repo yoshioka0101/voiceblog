@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 enum APIError: LocalizedError {
     case unauthorized
@@ -71,6 +72,7 @@ private extension URLError {
 actor APIClient {
     static let shared = APIClient()
 
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "VoiceBlog", category: "APIClient")
     private let baseURLResult: Result<URL, APIError>
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
@@ -127,11 +129,11 @@ actor APIClient {
 
         let (data, response): (Data, URLResponse)
         do {
-            print("[APIClient] sending \(method) \(url)")
+            logger.debug("sending \(method, privacy: .public) \(url, privacy: .private)")
             (data, response) = try await URLSession.shared.data(for: req)
-            print("[APIClient] received response for \(method) \(url)")
+            logger.debug("received response for \(method, privacy: .public) \(url, privacy: .private)")
         } catch {
-            print("[APIClient] network error for \(method) \(url): \(error)")
+            logger.error("network error for \(method, privacy: .public) \(url, privacy: .private): \(error, privacy: .private)")
             throw APIError.networkError(error)
         }
 

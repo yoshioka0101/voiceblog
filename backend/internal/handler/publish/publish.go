@@ -1,15 +1,14 @@
 package publish
 
 import (
-	"errors"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler/httperror"
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler/middleware"
+	"github.com/yoshioka0101/voiceblog/backend/internal/handler/validation"
 	usecase "github.com/yoshioka0101/voiceblog/backend/internal/usecase/publish"
 )
 
@@ -45,9 +44,9 @@ func (h *Handler) PublishArticle(c *gin.Context) {
 		return
 	}
 
-	articleID, err := parseIDParam(c.Param("id"))
+	articleID, err := validation.IDParam(c.Param("id"), "article id")
 	if err != nil {
-		httperror.BadRequest(c, "invalid article id")
+		httperror.FromError(c, err, "invalid article id")
 		return
 	}
 
@@ -82,9 +81,9 @@ func (h *Handler) GetShareTargets(c *gin.Context) {
 		return
 	}
 
-	articleID, err := parseIDParam(c.Param("id"))
+	articleID, err := validation.IDParam(c.Param("id"), "article id")
 	if err != nil {
-		httperror.BadRequest(c, "invalid article id")
+		httperror.FromError(c, err, "invalid article id")
 		return
 	}
 
@@ -109,16 +108,4 @@ func (h *Handler) GetShareTargets(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, resp)
-}
-
-// parseIDParam converts a path parameter to a positive int64 so handlers reject zero, negative, and malformed IDs early.
-func parseIDParam(raw string) (int64, error) {
-	id, err := strconv.ParseInt(raw, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	if id <= 0 {
-		return 0, errors.New("id must be positive")
-	}
-	return id, nil
 }

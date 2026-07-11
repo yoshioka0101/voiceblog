@@ -1,15 +1,14 @@
 package promptrunjob
 
 import (
-	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/yoshioka0101/voiceblog/backend/internal/api"
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler/httperror"
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler/middleware"
+	"github.com/yoshioka0101/voiceblog/backend/internal/handler/validation"
 	"github.com/yoshioka0101/voiceblog/backend/internal/presenter/promptrunjob"
 	"github.com/yoshioka0101/voiceblog/backend/internal/usecase/promptrunjob"
 )
@@ -37,11 +36,13 @@ func (h *Handler) CreatePromptRunJob(c *gin.Context) {
 		return
 	}
 
-	value, err := h.useCase.CreatePromptRunJob(c.Request.Context(), usecase.CreatePromptRunJobInput{
-		UserID:          user.ID,
-		TranscriptionID: req.TranscriptionId,
-		PromptID:        req.PromptId,
-	})
+	input, err := validation.CreatePromptRunJobInput(user.ID, req)
+	if err != nil {
+		httperror.FromError(c, err, "invalid request")
+		return
+	}
+
+	value, err := h.useCase.CreatePromptRunJob(c.Request.Context(), input)
 	if err != nil {
 		httperror.FromError(c, err, "failed to create prompt run job")
 		return
@@ -57,9 +58,9 @@ func (h *Handler) GetPromptRunJob(c *gin.Context) {
 		return
 	}
 
-	jobID, err := parseIDParam(c.Param("id"))
+	jobID, err := validation.IDParam(c.Param("id"), "prompt run job id")
 	if err != nil {
-		httperror.BadRequest(c, "invalid prompt run job id")
+		httperror.FromError(c, err, "invalid prompt run job id")
 		return
 	}
 
@@ -70,16 +71,4 @@ func (h *Handler) GetPromptRunJob(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, presenter.PromptRunJob(value))
-}
-
-// parseIDParam converts a path parameter to a positive int64 so handlers reject zero, negative, and malformed IDs early.
-func parseIDParam(raw string) (int64, error) {
-	id, err := strconv.ParseInt(raw, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	if id <= 0 {
-		return 0, errors.New("id must be positive")
-	}
-	return id, nil
 }

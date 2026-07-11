@@ -1,15 +1,14 @@
 package article
 
 import (
-	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/yoshioka0101/voiceblog/backend/internal/api"
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler/httperror"
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler/middleware"
+	"github.com/yoshioka0101/voiceblog/backend/internal/handler/validation"
 	"github.com/yoshioka0101/voiceblog/backend/internal/presenter/article"
 	"github.com/yoshioka0101/voiceblog/backend/internal/usecase/article"
 )
@@ -57,12 +56,13 @@ func (h *Handler) CreateArticle(c *gin.Context) {
 		return
 	}
 
-	value, err := h.useCase.CreateArticle(c.Request.Context(), usecase.CreateArticleInput{
-		UserID:         user.ID,
-		PromptRunJobID: req.PromptRunJobId,
-		Title:          req.Title,
-		Content:        req.Content,
-	})
+	input, err := validation.CreateArticleInput(user.ID, req)
+	if err != nil {
+		httperror.FromError(c, err, "invalid request")
+		return
+	}
+
+	value, err := h.useCase.CreateArticle(c.Request.Context(), input)
 	if err != nil {
 		httperror.FromError(c, err, "failed to create article")
 		return
@@ -84,11 +84,13 @@ func (h *Handler) GenerateArticle(c *gin.Context) {
 		return
 	}
 
-	value, err := h.useCase.GenerateArticle(c.Request.Context(), usecase.GenerateArticleInput{
-		UserID:          user.ID,
-		TranscriptionID: req.TranscriptionId,
-		PromptID:        req.PromptId,
-	})
+	input, err := validation.GenerateArticleInput(user.ID, req)
+	if err != nil {
+		httperror.FromError(c, err, "invalid request")
+		return
+	}
+
+	value, err := h.useCase.GenerateArticle(c.Request.Context(), input)
 	if err != nil {
 		httperror.FromError(c, err, "failed to generate article")
 		return
@@ -107,9 +109,9 @@ func (h *Handler) GetArticle(c *gin.Context) {
 		return
 	}
 
-	articleID, err := parseIDParam(c.Param("id"))
+	articleID, err := validation.IDParam(c.Param("id"), "article id")
 	if err != nil {
-		httperror.BadRequest(c, "invalid article id")
+		httperror.FromError(c, err, "invalid article id")
 		return
 	}
 
@@ -129,9 +131,9 @@ func (h *Handler) UpdateArticle(c *gin.Context) {
 		return
 	}
 
-	articleID, err := parseIDParam(c.Param("id"))
+	articleID, err := validation.IDParam(c.Param("id"), "article id")
 	if err != nil {
-		httperror.BadRequest(c, "invalid article id")
+		httperror.FromError(c, err, "invalid article id")
 		return
 	}
 
@@ -141,12 +143,13 @@ func (h *Handler) UpdateArticle(c *gin.Context) {
 		return
 	}
 
-	value, err := h.useCase.UpdateArticle(c.Request.Context(), usecase.UpdateArticleInput{
-		UserID:    user.ID,
-		ArticleID: articleID,
-		Title:     req.Title,
-		Content:   req.Content,
-	})
+	input, err := validation.UpdateArticleInput(user.ID, articleID, req)
+	if err != nil {
+		httperror.FromError(c, err, "invalid request")
+		return
+	}
+
+	value, err := h.useCase.UpdateArticle(c.Request.Context(), input)
 	if err != nil {
 		httperror.FromError(c, err, "failed to update article")
 		return
@@ -162,9 +165,9 @@ func (h *Handler) DeleteArticle(c *gin.Context) {
 		return
 	}
 
-	articleID, err := parseIDParam(c.Param("id"))
+	articleID, err := validation.IDParam(c.Param("id"), "article id")
 	if err != nil {
-		httperror.BadRequest(c, "invalid article id")
+		httperror.FromError(c, err, "invalid article id")
 		return
 	}
 
@@ -174,16 +177,4 @@ func (h *Handler) DeleteArticle(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
-}
-
-// parseIDParam converts a path parameter to a positive int64 so handlers reject zero, negative, and malformed IDs early.
-func parseIDParam(raw string) (int64, error) {
-	id, err := strconv.ParseInt(raw, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	if id <= 0 {
-		return 0, errors.New("id must be positive")
-	}
-	return id, nil
 }

@@ -1,15 +1,14 @@
 package prompt
 
 import (
-	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/yoshioka0101/voiceblog/backend/internal/api"
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler/httperror"
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler/middleware"
+	"github.com/yoshioka0101/voiceblog/backend/internal/handler/validation"
 	"github.com/yoshioka0101/voiceblog/backend/internal/presenter/prompt"
 	"github.com/yoshioka0101/voiceblog/backend/internal/usecase/prompt"
 )
@@ -55,12 +54,13 @@ func (h *Handler) CreatePrompt(c *gin.Context) {
 		return
 	}
 
-	value, err := h.useCase.CreatePrompt(c.Request.Context(), usecase.CreatePromptInput{
-		UserID:   user.ID,
-		Name:     req.Name,
-		Body:     req.Body,
-		IsActive: req.IsActive,
-	})
+	input, err := validation.CreatePromptInput(user.ID, req)
+	if err != nil {
+		httperror.FromError(c, err, "invalid request")
+		return
+	}
+
+	value, err := h.useCase.CreatePrompt(c.Request.Context(), input)
 	if err != nil {
 		httperror.FromError(c, err, "failed to create prompt")
 		return
@@ -76,9 +76,9 @@ func (h *Handler) UpdatePrompt(c *gin.Context) {
 		return
 	}
 
-	promptID, err := parseIDParam(c.Param("id"))
+	promptID, err := validation.IDParam(c.Param("id"), "prompt id")
 	if err != nil {
-		httperror.BadRequest(c, "invalid prompt id")
+		httperror.FromError(c, err, "invalid prompt id")
 		return
 	}
 
@@ -88,13 +88,13 @@ func (h *Handler) UpdatePrompt(c *gin.Context) {
 		return
 	}
 
-	value, err := h.useCase.UpdatePrompt(c.Request.Context(), usecase.UpdatePromptInput{
-		UserID:   user.ID,
-		PromptID: promptID,
-		Name:     req.Name,
-		Body:     req.Body,
-		IsActive: req.IsActive,
-	})
+	input, err := validation.UpdatePromptInput(user.ID, promptID, req)
+	if err != nil {
+		httperror.FromError(c, err, "invalid request")
+		return
+	}
+
+	value, err := h.useCase.UpdatePrompt(c.Request.Context(), input)
 	if err != nil {
 		httperror.FromError(c, err, "failed to update prompt")
 		return
@@ -110,9 +110,9 @@ func (h *Handler) DeletePrompt(c *gin.Context) {
 		return
 	}
 
-	promptID, err := parseIDParam(c.Param("id"))
+	promptID, err := validation.IDParam(c.Param("id"), "prompt id")
 	if err != nil {
-		httperror.BadRequest(c, "invalid prompt id")
+		httperror.FromError(c, err, "invalid prompt id")
 		return
 	}
 
@@ -122,16 +122,4 @@ func (h *Handler) DeletePrompt(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
-}
-
-// parseIDParam converts a path parameter to a positive int64 so handlers reject zero, negative, and malformed IDs early.
-func parseIDParam(raw string) (int64, error) {
-	id, err := strconv.ParseInt(raw, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	if id <= 0 {
-		return 0, errors.New("id must be positive")
-	}
-	return id, nil
 }

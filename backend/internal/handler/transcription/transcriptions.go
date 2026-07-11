@@ -1,7 +1,6 @@
 package transcription
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -9,6 +8,7 @@ import (
 	"github.com/yoshioka0101/voiceblog/backend/internal/api"
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler/httperror"
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler/middleware"
+	"github.com/yoshioka0101/voiceblog/backend/internal/handler/validation"
 	"github.com/yoshioka0101/voiceblog/backend/internal/presenter/transcription"
 	"github.com/yoshioka0101/voiceblog/backend/internal/usecase/transcription"
 )
@@ -35,17 +35,13 @@ func (h *Handler) CreateTranscription(c *gin.Context) {
 		return
 	}
 
-	segmentsJSON, err := json.Marshal(req.SegmentsJson)
+	input, err := validation.CreateTranscriptionInput(user.ID, req)
 	if err != nil {
-		httperror.BadRequest(c, "segments_json must be valid JSON")
+		httperror.FromError(c, err, "invalid request")
 		return
 	}
 
-	value, err := h.useCase.CreateTranscription(c.Request.Context(), usecase.CreateTranscriptionInput{
-		UserID:       user.ID,
-		FullText:     req.FullText,
-		SegmentsJSON: segmentsJSON,
-	})
+	value, err := h.useCase.CreateTranscription(c.Request.Context(), input)
 	if err != nil {
 		httperror.FromError(c, err, "failed to create transcription")
 		return
@@ -59,4 +55,3 @@ func (h *Handler) CreateTranscription(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, response)
 }
-

@@ -57,3 +57,11 @@ ios/Pods/
 ios/.build/
 ios/.build-ios/
 ios/VoiceBlog/Config/LocalSecrets.xcconfig
+
+# ビルドキャッシュ・ローカルツール
+.cache/
+backend/.cache/
+.bin/
+.build/
+ios/.build/
+ios/.build-ios/

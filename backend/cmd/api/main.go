@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -18,20 +20,24 @@ import (
 func main() {
 	slog.SetDefault(logger.New(slog.LevelInfo))
 
+	if err := run(); err != nil {
+		slog.Error("api server exited", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	cfg, err := config.Load()
 	if err != nil {
-		slog.Error("failed to load config", slog.String("error", err.Error()))
-		os.Exit(1)
+		return fmt.Errorf("load config: %w", err)
 	}
 
 	log := logger.New(cfg.LogLevel)
 	slog.SetDefault(log)
-	addr := ":" + cfg.Port
 
 	dbConn, err := db.Open(cfg.DBDSN, log)
 	if err != nil {
-		log.Error("failed to connect db", slog.String("error", err.Error()))
-		os.Exit(1)
+		return fmt.Errorf("connect db: %w", err)
 	}
 	defer func() {
 		if err := db.Close(dbConn); err != nil {
@@ -41,24 +47,31 @@ func main() {
 
 	srv, err := server.New(dbConn, &cfg, log)
 	if err != nil {
-		log.Error("failed to create server", slog.String("error", err.Error()))
-		os.Exit(1)
+		return fmt.Errorf("create server: %w", err)
 	}
+
+	serverErr := make(chan error, 1)
 	go func() {
-		if err := srv.Run(addr); err != nil && err != http.ErrServerClosed {
-			log.Error("server stopped", slog.String("error", err.Error()))
-			os.Exit(1)
+		if err := srv.Run(":" + cfg.Port); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverErr <- err
 		}
 	}()
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-	<-stop
+
+	select {
+	case err := <-serverErr:
+		return fmt.Errorf("run server: %w", err)
+	case <-stop:
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Error("failed to shutdown server", slog.String("error", err.Error()))
+		return fmt.Errorf("shutdown server: %w", err)
 	}
+
+	return nil
 }

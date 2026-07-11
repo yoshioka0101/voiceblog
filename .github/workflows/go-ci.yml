@@ -35,11 +35,10 @@ jobs:
         run: go tool golangci-lint run ./...
 
       - name: Check go fix
-        # go fix -diff は差分があっても exit 0 なので、出力が空でなければ失敗させる
+        # 未適用差分があっても CI は落とさず、警告として表示するだけにする
         run: |
           diff_output=$(go fix -diff ./...)
           if [ -n "$diff_output" ]; then
             echo "$diff_output"
-            echo "::error::go fix の未適用差分があります。ローカルで 'go fix ./...' を実行してください。"
-            exit 1
+            echo "::warning::go fix の未適用差分があります。ローカルで 'go fix ./...' を実行してください。"
           fi

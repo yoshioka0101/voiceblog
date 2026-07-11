@@ -30,8 +30,16 @@ jobs:
       - name: Run tests
         run: go test ./...
 
-      - name: Install golangci-lint
-        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-
       - name: Run golangci-lint
-        run: golangci-lint run ./...
+        # go.mod の tool ディレクティブでバージョンを固定し、ローカルの make lint と揃える
+        run: go tool golangci-lint run ./...
+
+      - name: Check go fix
+        # go fix -diff は差分があっても exit 0 なので、出力が空でなければ失敗させる
+        run: |
+          diff_output=$(go fix -diff ./...)
+          if [ -n "$diff_output" ]; then
+            echo "$diff_output"
+            echo "::error::go fix の未適用差分があります。ローカルで 'go fix ./...' を実行してください。"
+            exit 1
+          fi

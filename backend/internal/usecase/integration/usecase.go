@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"github.com/yoshioka0101/voiceblog/backend/internal/entity/repository"
 
 	"github.com/yoshioka0101/voiceblog/backend/internal/apperr"
 	entity "github.com/yoshioka0101/voiceblog/backend/internal/entity/externaltoken"
@@ -30,12 +31,12 @@ type IntegrationStatus struct {
 }
 
 type UseCase struct {
-	repo      entity.Repository
+	repo      repository.ExternalTokenRepository
 	encryptor TokenCipher
 	verifiers map[string]Verifier
 }
 
-func NewUseCase(repo entity.Repository, encryptor TokenCipher, verifiers map[string]Verifier) *UseCase {
+func NewUseCase(repo repository.ExternalTokenRepository, encryptor TokenCipher, verifiers map[string]Verifier) *UseCase {
 	return &UseCase{
 		repo:      repo,
 		encryptor: encryptor,

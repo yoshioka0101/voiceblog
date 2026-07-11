@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/yoshioka0101/voiceblog/backend/internal/entity/repository"
 	"strings"
 
 	"github.com/yoshioka0101/voiceblog/backend/internal/apperr"
@@ -20,10 +21,10 @@ type CreateTranscriptionInput struct {
 }
 
 type UseCase struct {
-	repo entity.Repository
+	repo repository.TranscriptionRepository
 }
 
-func NewUseCase(repo entity.Repository) *UseCase {
+func NewUseCase(repo repository.TranscriptionRepository) *UseCase {
 	return &UseCase{repo: repo}
 }
 

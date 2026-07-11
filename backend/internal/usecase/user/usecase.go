@@ -2,15 +2,16 @@ package user
 
 import (
 	"context"
+	"github.com/yoshioka0101/voiceblog/backend/internal/entity/repository"
 
 	entity "github.com/yoshioka0101/voiceblog/backend/internal/entity/user"
 )
 
 type UseCase struct {
-	repo entity.Repository
+	repo repository.UserRepository
 }
 
-func NewUseCase(repo entity.Repository) *UseCase {
+func NewUseCase(repo repository.UserRepository) *UseCase {
 	return &UseCase{repo: repo}
 }
 

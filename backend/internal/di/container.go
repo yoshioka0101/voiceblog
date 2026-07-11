@@ -4,15 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/yoshioka0101/voiceblog/backend/internal/entity/repository"
 
 	dbtx "github.com/yoshioka0101/voiceblog/backend/internal/db"
-	articleEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/article"
-	shareEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/articlesharetarget"
-	tokenEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/externaltoken"
-	promptEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/prompt"
-	promptRunJobEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/promptrunjob"
-	transcriptionEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/transcription"
-	domainUser "github.com/yoshioka0101/voiceblog/backend/internal/entity/user"
 	"github.com/yoshioka0101/voiceblog/backend/internal/infra/crypto"
 	"github.com/yoshioka0101/voiceblog/backend/internal/infra/gemini"
 	"github.com/yoshioka0101/voiceblog/backend/internal/infra/googleauth"
@@ -30,13 +24,13 @@ import (
 )
 
 type Repositories struct {
-	User               domainUser.Repository
-	Prompt             promptEntity.Repository
-	Transcription      transcriptionEntity.Repository
-	Article            articleEntity.Repository
-	PromptRunJob       promptRunJobEntity.Repository
-	ExternalToken      tokenEntity.Repository
-	ArticleShareTarget shareEntity.Repository
+	User               repository.UserRepository
+	Prompt             repository.PromptRepository
+	Transcription      repository.TranscriptionRepository
+	Article            repository.ArticleRepository
+	PromptRunJob       repository.PromptRunJobRepository
+	ExternalToken      repository.ExternalTokenRepository
+	ArticleShareTarget repository.ArticleShareTargetRepository
 }
 
 type UseCases struct {

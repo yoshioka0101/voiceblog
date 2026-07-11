@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"github.com/yoshioka0101/voiceblog/backend/internal/entity/repository"
 	"strings"
 	"time"
 
@@ -33,17 +34,17 @@ type CreatePromptRunJobInput struct {
 }
 
 type UseCase struct {
-	repo              entity.Repository
-	transcriptionRepo transcriptionEntity.Repository
-	promptRepo        promptEntity.Repository
+	repo              repository.PromptRunJobRepository
+	transcriptionRepo repository.TranscriptionRepository
+	promptRepo        repository.PromptRepository
 	generator         articlegen.Generator
 	txRunner          dbtx.TxRunner
 }
 
 func NewUseCase(
-	repo entity.Repository,
-	transcriptionRepo transcriptionEntity.Repository,
-	promptRepo promptEntity.Repository,
+	repo repository.PromptRunJobRepository,
+	transcriptionRepo repository.TranscriptionRepository,
+	promptRepo repository.PromptRepository,
 	generator articlegen.Generator,
 	txRunners ...dbtx.TxRunner,
 ) *UseCase {

@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"github.com/yoshioka0101/voiceblog/backend/internal/entity/repository"
 	"net/http"
 	"strings"
 
@@ -10,8 +11,6 @@ import (
 	dbtx "github.com/yoshioka0101/voiceblog/backend/internal/db"
 	entity "github.com/yoshioka0101/voiceblog/backend/internal/entity/article"
 	promptEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/prompt"
-	promptrunjobEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/promptrunjob"
-	transcriptionEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/transcription"
 	"github.com/yoshioka0101/voiceblog/backend/internal/usecase/articlegen"
 )
 
@@ -41,18 +40,18 @@ type GenerateArticleInput struct {
 }
 
 type UseCase struct {
-	repo              entity.Repository
-	promptRunJobRepo  promptrunjobEntity.Repository
-	transcriptionRepo transcriptionEntity.Repository
-	promptRepo        promptEntity.Repository
+	repo              repository.ArticleRepository
+	promptRunJobRepo  repository.PromptRunJobRepository
+	transcriptionRepo repository.TranscriptionRepository
+	promptRepo        repository.PromptRepository
 	generator         articlegen.Generator
 	txRunner          dbtx.TxRunner
 }
 
 func NewUseCase(
-	repo entity.Repository,
-	promptRunJobRepo promptrunjobEntity.Repository,
-	transcriptionRepo transcriptionEntity.Repository,
+	repo repository.ArticleRepository,
+	promptRunJobRepo repository.PromptRunJobRepository,
+	transcriptionRepo repository.TranscriptionRepository,
 	txRunners ...dbtx.TxRunner,
 ) *UseCase {
 	var txRunner dbtx.TxRunner
@@ -68,7 +67,7 @@ func NewUseCase(
 	}
 }
 
-func (uc *UseCase) WithGenerator(promptRepo promptEntity.Repository, generator articlegen.Generator) *UseCase {
+func (uc *UseCase) WithGenerator(promptRepo repository.PromptRepository, generator articlegen.Generator) *UseCase {
 	uc.promptRepo = promptRepo
 	uc.generator = generator
 	return uc

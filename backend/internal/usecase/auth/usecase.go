@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"github.com/yoshioka0101/voiceblog/backend/internal/entity/repository"
 
 	domainAuth "github.com/yoshioka0101/voiceblog/backend/internal/entity/auth"
 	domainUser "github.com/yoshioka0101/voiceblog/backend/internal/entity/user"
@@ -10,10 +11,10 @@ import (
 
 type UseCase struct {
 	verifier domainAuth.TokenVerifier
-	userRepo domainUser.Repository
+	userRepo repository.UserRepository
 }
 
-func NewUseCase(verifier domainAuth.TokenVerifier, userRepo domainUser.Repository) *UseCase {
+func NewUseCase(verifier domainAuth.TokenVerifier, userRepo repository.UserRepository) *UseCase {
 	return &UseCase{verifier: verifier, userRepo: userRepo}
 }
 

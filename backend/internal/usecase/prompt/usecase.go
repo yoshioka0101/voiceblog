@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"github.com/yoshioka0101/voiceblog/backend/internal/entity/repository"
 	"strings"
 
 	"github.com/yoshioka0101/voiceblog/backend/internal/apperr"
@@ -30,11 +31,11 @@ type UpdatePromptInput struct {
 }
 
 type UseCase struct {
-	repo     entity.Repository
+	repo     repository.PromptRepository
 	txRunner dbtx.TxRunner
 }
 
-func NewUseCase(repo entity.Repository, txRunners ...dbtx.TxRunner) *UseCase {
+func NewUseCase(repo repository.PromptRepository, txRunners ...dbtx.TxRunner) *UseCase {
 	var txRunner dbtx.TxRunner
 	if len(txRunners) > 0 {
 		txRunner = txRunners[0]

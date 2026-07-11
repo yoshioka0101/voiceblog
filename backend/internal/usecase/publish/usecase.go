@@ -3,10 +3,10 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"github.com/yoshioka0101/voiceblog/backend/internal/entity/repository"
 	"time"
 
 	"github.com/yoshioka0101/voiceblog/backend/internal/apperr"
-	articleEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/article"
 	shareEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/articlesharetarget"
 	integrationUsecase "github.com/yoshioka0101/voiceblog/backend/internal/usecase/integration"
 )
@@ -21,15 +21,15 @@ type Publisher interface {
 }
 
 type UseCase struct {
-	articleRepo   articleEntity.Repository
-	shareRepo     shareEntity.Repository
+	articleRepo   repository.ArticleRepository
+	shareRepo     repository.ArticleShareTargetRepository
 	integrationUC *integrationUsecase.UseCase
 	publishers    map[string]Publisher
 }
 
 func NewUseCase(
-	articleRepo articleEntity.Repository,
-	shareRepo shareEntity.Repository,
+	articleRepo repository.ArticleRepository,
+	shareRepo repository.ArticleShareTargetRepository,
 	integrationUC *integrationUsecase.UseCase,
 	publishers map[string]Publisher,
 ) *UseCase {

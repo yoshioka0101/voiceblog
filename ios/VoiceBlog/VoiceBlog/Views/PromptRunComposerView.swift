@@ -285,7 +285,7 @@ private struct GeneratedArticlePreviewView: View {
         do {
             let token = try await auth.fetchIDToken()
             let article = try await APIClient.shared.createArticle(
-                request: ArticleCreateRequest(title: draft.title, content: draft.content, promptRunJobId: nil),
+                request: ArticleCreateRequest(title: draft.title, content: draft.content),
                 token: token
             )
             createdArticle = article

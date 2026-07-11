@@ -238,14 +238,6 @@ actor APIClient {
         let _: EmptyResponse = try await request(path: "/articles/\(id)", method: "DELETE", token: token)
     }
 
-    func createPromptRunJob(request body: PromptRunJobCreateRequest, token: String) async throws -> PromptRunJob {
-        try await request(path: "/prompt-run-jobs", method: "POST", token: token, body: body)
-    }
-
-    func getPromptRunJob(id: Int64, token: String) async throws -> PromptRunJob {
-        try await request(path: "/prompt-run-jobs/\(id)", token: token)
-    }
-
     func getIntegrations(token: String) async throws -> [Integration] {
         try await request(path: "/integrations", token: token)
     }

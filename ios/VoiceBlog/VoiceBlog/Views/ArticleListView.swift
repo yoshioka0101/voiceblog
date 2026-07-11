@@ -135,7 +135,7 @@ struct ArticleListView: View {
     private func createArticle(_ draft: ArticleDraft) async throws {
         let token = try await auth.fetchIDToken()
         let created = try await APIClient.shared.createArticle(
-            request: ArticleCreateRequest(title: draft.title, content: draft.content, promptRunJobId: nil),
+            request: ArticleCreateRequest(title: draft.title, content: draft.content),
             token: token
         )
         articles.insert(created, at: 0)
@@ -158,14 +158,7 @@ private struct ArticleRowView: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(3)
 
-                    HStack(spacing: 8) {
-                        if article.promptRunJobId != nil {
-                            AppTag(title: "AI生成", tint: .orange)
-                        } else {
-                            AppTag(title: "手動作成", tint: .blue)
-                        }
-                        AppTag(title: article.updatedAt.formatted(date: .abbreviated, time: .omitted), tint: .indigo)
-                    }
+                    AppTag(title: article.updatedAt.formatted(date: .abbreviated, time: .omitted), tint: .indigo)
                 }
 
                 Spacer(minLength: 0)

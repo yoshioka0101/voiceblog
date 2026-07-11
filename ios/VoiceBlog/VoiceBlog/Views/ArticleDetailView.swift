@@ -28,21 +28,10 @@ struct ArticleDetailView: View {
                     Text("記事の概要")
                         .font(.headline)
 
-                    HStack(spacing: 8) {
-                        AppTag(title: "\(article.content.count) 文字", tint: .indigo)
-                        if article.promptRunJobId != nil {
-                            AppTag(title: "AI生成", tint: .orange)
-                        } else {
-                            AppTag(title: "手動作成", tint: .blue)
-                        }
-                    }
+                    AppTag(title: "\(article.content.count) 文字", tint: .indigo)
 
                     LabeledContent("作成", value: article.createdAt.formatted(date: .abbreviated, time: .shortened))
                     LabeledContent("更新", value: article.updatedAt.formatted(date: .abbreviated, time: .shortened))
-
-                    if let promptRunJobId = article.promptRunJobId {
-                        LabeledContent("Job ID", value: String(promptRunJobId))
-                    }
                 }
 
                 AppSurface(accent: .blue) {

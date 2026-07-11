@@ -130,7 +130,7 @@ func TestUpdatePromptInput(t *testing.T) {
 }
 
 func TestCreateTranscriptionInput(t *testing.T) {
-	segments := []map[string]interface{}{{"text": "hello", "start_ms": 0, "end_ms": 100}}
+	segments := []map[string]any{{"text": "hello", "start_ms": 0, "end_ms": 100}}
 
 	input, err := CreateTranscriptionInput(1, api.CreateTranscriptionRequest{FullText: "hello", SegmentsJson: segments})
 	if err != nil {

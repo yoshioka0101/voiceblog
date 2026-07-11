@@ -24,8 +24,8 @@ func Transcription(value *entity.Transcription) (api.TranscriptionResponse, erro
 	}, nil
 }
 
-func decodeSegmentsJSON(raw json.RawMessage) ([]map[string]interface{}, error) {
-	var segments []map[string]interface{}
+func decodeSegmentsJSON(raw json.RawMessage) ([]map[string]any, error) {
+	var segments []map[string]any
 	if err := json.Unmarshal(raw, &segments); err != nil {
 		return nil, fmt.Errorf("unmarshal segments_json: %w", err)
 	}

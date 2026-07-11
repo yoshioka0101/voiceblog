@@ -46,7 +46,7 @@ func (r *UserRepository) FindOrCreate(ctx context.Context, provider, subject, em
 	if err != nil {
 		return nil, fmt.Errorf("upsert user: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	if !rows.Next() {
 		return nil, fmt.Errorf("upsert user: no rows returned")

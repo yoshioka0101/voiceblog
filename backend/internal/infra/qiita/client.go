@@ -61,7 +61,7 @@ func (c *Client) Verify(ctx context.Context, token string) error {
 	if err != nil {
 		return fmt.Errorf("request qiita verify: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if _, err := io.ReadAll(resp.Body); err != nil {
 		return fmt.Errorf("read qiita verify response: %w", err)
 	}
@@ -103,7 +103,7 @@ func (c *Client) Publish(ctx context.Context, token, title, content string) (*Pu
 	if err != nil {
 		return nil, fmt.Errorf("request qiita: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

@@ -108,8 +108,8 @@ func mustJWK(t *testing.T, kid string) jwkKey {
 
 	return jwkKey{
 		Kid: kid,
-		N:   base64.RawURLEncoding.EncodeToString(privateKey.PublicKey.N.Bytes()),
-		E:   base64.RawURLEncoding.EncodeToString(bigEndianBytes(privateKey.PublicKey.E)),
+		N:   base64.RawURLEncoding.EncodeToString(privateKey.N.Bytes()),
+		E:   base64.RawURLEncoding.EncodeToString(bigEndianBytes(privateKey.E)),
 	}
 }
 

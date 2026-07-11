@@ -54,7 +54,7 @@ func (c *Client) Verify(ctx context.Context, token string) error {
 	if err != nil {
 		return fmt.Errorf("request hatena verify: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if _, err := io.ReadAll(resp.Body); err != nil {
 		return fmt.Errorf("read hatena verify response: %w", err)
 	}
@@ -105,7 +105,7 @@ func (c *Client) Publish(ctx context.Context, token, title, content string) (*Pu
 	if err != nil {
 		return nil, fmt.Errorf("request hatena: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {

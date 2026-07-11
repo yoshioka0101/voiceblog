@@ -85,7 +85,7 @@ func (c *jwksCache) refresh(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("fetch jwks: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
 		return fmt.Errorf("unexpected jwks status: %d", resp.StatusCode)
@@ -127,7 +127,7 @@ func (c *jwksCache) refresh(ctx context.Context) error {
 }
 
 func maxAgeFromCacheControl(value string) (time.Duration, bool) {
-	for _, directive := range strings.Split(value, ",") {
+	for directive := range strings.SplitSeq(value, ",") {
 		key, raw, ok := strings.Cut(strings.TrimSpace(directive), "=")
 		if !ok || !strings.EqualFold(key, "max-age") {
 			continue

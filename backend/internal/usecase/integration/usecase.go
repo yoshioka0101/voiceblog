@@ -6,7 +6,6 @@ import (
 
 	"github.com/yoshioka0101/voiceblog/backend/internal/apperr"
 	entity "github.com/yoshioka0101/voiceblog/backend/internal/entity/externaltoken"
-	"github.com/yoshioka0101/voiceblog/backend/internal/infra/crypto"
 )
 
 var supportedProviders = map[string]bool{
@@ -19,6 +18,12 @@ type Verifier interface {
 	Verify(ctx context.Context, token string) error
 }
 
+// TokenCipher encrypts provider tokens before persistence and decrypts them after loading.
+type TokenCipher interface {
+	Encrypt(plaintext []byte) (ciphertext, nonce []byte, err error)
+	Decrypt(ciphertext, nonce []byte) ([]byte, error)
+}
+
 type IntegrationStatus struct {
 	Provider  string
 	Connected bool
@@ -26,11 +31,11 @@ type IntegrationStatus struct {
 
 type UseCase struct {
 	repo      entity.Repository
-	encryptor *crypto.AESEncryptor
+	encryptor TokenCipher
 	verifiers map[string]Verifier
 }
 
-func NewUseCase(repo entity.Repository, encryptor *crypto.AESEncryptor, verifiers map[string]Verifier) *UseCase {
+func NewUseCase(repo entity.Repository, encryptor TokenCipher, verifiers map[string]Verifier) *UseCase {
 	return &UseCase{
 		repo:      repo,
 		encryptor: encryptor,

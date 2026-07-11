@@ -9,7 +9,6 @@ import (
 	share "github.com/yoshioka0101/voiceblog/backend/internal/entity/articlesharetarget"
 	externaltoken "github.com/yoshioka0101/voiceblog/backend/internal/entity/externaltoken"
 	prompt "github.com/yoshioka0101/voiceblog/backend/internal/entity/prompt"
-	promptrunjob "github.com/yoshioka0101/voiceblog/backend/internal/entity/promptrunjob"
 	transcription "github.com/yoshioka0101/voiceblog/backend/internal/entity/transcription"
 	"github.com/yoshioka0101/voiceblog/backend/internal/entity/user"
 )
@@ -34,17 +33,9 @@ type TranscriptionRepository interface {
 type ArticleRepository interface {
 	CreateArticle(ctx context.Context, value *article.Article) (*article.Article, error)
 	FindArticleByID(ctx context.Context, id int64) (*article.Article, error)
-	FindArticleByPromptRunJobID(ctx context.Context, promptRunJobID int64) (*article.Article, error)
 	ListArticlesByUserID(ctx context.Context, userID int64) ([]*article.Article, error)
 	UpdateArticle(ctx context.Context, value *article.Article) (*article.Article, error)
 	DeleteArticle(ctx context.Context, id int64) error
-	UpsertArticleByPromptRunJobID(ctx context.Context, value *article.Article) (*article.Article, error)
-}
-
-type PromptRunJobRepository interface {
-	CreatePromptRunJob(ctx context.Context, value *promptrunjob.Job) (*promptrunjob.Job, error)
-	FindPromptRunJobByID(ctx context.Context, id int64) (*promptrunjob.Job, error)
-	UpdatePromptRunJob(ctx context.Context, value *promptrunjob.Job) (*promptrunjob.Job, error)
 }
 
 type ExternalTokenRepository interface {

@@ -26,14 +26,13 @@ import (
 
 // Article is an object representing the database table.
 type Article struct {
-	ID             int64               `db:"id,pk" `
-	UserID         int64               `db:"user_id" `
-	PromptRunJobID null.Val[int64]     `db:"prompt_run_job_id" `
-	Title          string              `db:"title" `
-	Content        string              `db:"content" `
-	DeletedAt      null.Val[time.Time] `db:"deleted_at" `
-	CreatedAt      time.Time           `db:"created_at" `
-	UpdatedAt      time.Time           `db:"updated_at" `
+	ID        int64               `db:"id,pk" `
+	UserID    int64               `db:"user_id" `
+	Title     string              `db:"title" `
+	Content   string              `db:"content" `
+	DeletedAt null.Val[time.Time] `db:"deleted_at" `
+	CreatedAt time.Time           `db:"created_at" `
+	UpdatedAt time.Time           `db:"updated_at" `
 
 	R articleR `db:"-" `
 }
@@ -51,38 +50,35 @@ type ArticlesQuery = *psql.ViewQuery[*Article, ArticleSlice]
 // articleR is where relationships are stored.
 type articleR struct {
 	ArticleShareTargets ArticleShareTargetSlice // article_share_targets.article_share_targets_article_id_fkey
-	PromptRunJob        *PromptRunJob           // articles.articles_prompt_run_job_id_fkey
 	User                *User                   // articles.articles_user_id_fkey
 }
 
 func buildArticleColumns(alias string) articleColumns {
 	return articleColumns{
 		ColumnsExpr: expr.NewColumnsExpr(
-			"id", "user_id", "prompt_run_job_id", "title", "content", "deleted_at", "created_at", "updated_at",
+			"id", "user_id", "title", "content", "deleted_at", "created_at", "updated_at",
 		).WithParent("articles"),
-		tableAlias:     alias,
-		ID:             psql.Quote(alias, "id"),
-		UserID:         psql.Quote(alias, "user_id"),
-		PromptRunJobID: psql.Quote(alias, "prompt_run_job_id"),
-		Title:          psql.Quote(alias, "title"),
-		Content:        psql.Quote(alias, "content"),
-		DeletedAt:      psql.Quote(alias, "deleted_at"),
-		CreatedAt:      psql.Quote(alias, "created_at"),
-		UpdatedAt:      psql.Quote(alias, "updated_at"),
+		tableAlias: alias,
+		ID:         psql.Quote(alias, "id"),
+		UserID:     psql.Quote(alias, "user_id"),
+		Title:      psql.Quote(alias, "title"),
+		Content:    psql.Quote(alias, "content"),
+		DeletedAt:  psql.Quote(alias, "deleted_at"),
+		CreatedAt:  psql.Quote(alias, "created_at"),
+		UpdatedAt:  psql.Quote(alias, "updated_at"),
 	}
 }
 
 type articleColumns struct {
 	expr.ColumnsExpr
-	tableAlias     string
-	ID             psql.Expression
-	UserID         psql.Expression
-	PromptRunJobID psql.Expression
-	Title          psql.Expression
-	Content        psql.Expression
-	DeletedAt      psql.Expression
-	CreatedAt      psql.Expression
-	UpdatedAt      psql.Expression
+	tableAlias string
+	ID         psql.Expression
+	UserID     psql.Expression
+	Title      psql.Expression
+	Content    psql.Expression
+	DeletedAt  psql.Expression
+	CreatedAt  psql.Expression
+	UpdatedAt  psql.Expression
 }
 
 func (c articleColumns) Alias() string {
@@ -97,26 +93,22 @@ func (articleColumns) AliasedAs(alias string) articleColumns {
 // All values are optional, and do not have to be set
 // Generated columns are not included
 type ArticleSetter struct {
-	ID             omit.Val[int64]         `db:"id,pk" `
-	UserID         omit.Val[int64]         `db:"user_id" `
-	PromptRunJobID omitnull.Val[int64]     `db:"prompt_run_job_id" `
-	Title          omit.Val[string]        `db:"title" `
-	Content        omit.Val[string]        `db:"content" `
-	DeletedAt      omitnull.Val[time.Time] `db:"deleted_at" `
-	CreatedAt      omit.Val[time.Time]     `db:"created_at" `
-	UpdatedAt      omit.Val[time.Time]     `db:"updated_at" `
+	ID        omit.Val[int64]         `db:"id,pk" `
+	UserID    omit.Val[int64]         `db:"user_id" `
+	Title     omit.Val[string]        `db:"title" `
+	Content   omit.Val[string]        `db:"content" `
+	DeletedAt omitnull.Val[time.Time] `db:"deleted_at" `
+	CreatedAt omit.Val[time.Time]     `db:"created_at" `
+	UpdatedAt omit.Val[time.Time]     `db:"updated_at" `
 }
 
 func (s ArticleSetter) SetColumns() []string {
-	vals := make([]string, 0, 8)
+	vals := make([]string, 0, 7)
 	if s.ID.IsValue() {
 		vals = append(vals, "id")
 	}
 	if s.UserID.IsValue() {
 		vals = append(vals, "user_id")
-	}
-	if !s.PromptRunJobID.IsUnset() {
-		vals = append(vals, "prompt_run_job_id")
 	}
 	if s.Title.IsValue() {
 		vals = append(vals, "title")
@@ -143,9 +135,6 @@ func (s ArticleSetter) Overwrite(t *Article) {
 	if s.UserID.IsValue() {
 		t.UserID = s.UserID.MustGet()
 	}
-	if !s.PromptRunJobID.IsUnset() {
-		t.PromptRunJobID = s.PromptRunJobID.MustGetNull()
-	}
 	if s.Title.IsValue() {
 		t.Title = s.Title.MustGet()
 	}
@@ -169,7 +158,7 @@ func (s *ArticleSetter) Apply(q *dialect.InsertQuery) {
 	})
 
 	q.AppendValues(bob.ExpressionFunc(func(ctx context.Context, w io.StringWriter, d bob.Dialect, start int) ([]any, error) {
-		vals := make([]bob.Expression, 8)
+		vals := make([]bob.Expression, 7)
 		if s.ID.IsValue() {
 			vals[0] = psql.Arg(s.ID.MustGet())
 		} else {
@@ -182,40 +171,34 @@ func (s *ArticleSetter) Apply(q *dialect.InsertQuery) {
 			vals[1] = psql.Raw("DEFAULT")
 		}
 
-		if !s.PromptRunJobID.IsUnset() {
-			vals[2] = psql.Arg(s.PromptRunJobID.MustGetNull())
+		if s.Title.IsValue() {
+			vals[2] = psql.Arg(s.Title.MustGet())
 		} else {
 			vals[2] = psql.Raw("DEFAULT")
 		}
 
-		if s.Title.IsValue() {
-			vals[3] = psql.Arg(s.Title.MustGet())
+		if s.Content.IsValue() {
+			vals[3] = psql.Arg(s.Content.MustGet())
 		} else {
 			vals[3] = psql.Raw("DEFAULT")
 		}
 
-		if s.Content.IsValue() {
-			vals[4] = psql.Arg(s.Content.MustGet())
+		if !s.DeletedAt.IsUnset() {
+			vals[4] = psql.Arg(s.DeletedAt.MustGetNull())
 		} else {
 			vals[4] = psql.Raw("DEFAULT")
 		}
 
-		if !s.DeletedAt.IsUnset() {
-			vals[5] = psql.Arg(s.DeletedAt.MustGetNull())
+		if s.CreatedAt.IsValue() {
+			vals[5] = psql.Arg(s.CreatedAt.MustGet())
 		} else {
 			vals[5] = psql.Raw("DEFAULT")
 		}
 
-		if s.CreatedAt.IsValue() {
-			vals[6] = psql.Arg(s.CreatedAt.MustGet())
+		if s.UpdatedAt.IsValue() {
+			vals[6] = psql.Arg(s.UpdatedAt.MustGet())
 		} else {
 			vals[6] = psql.Raw("DEFAULT")
-		}
-
-		if s.UpdatedAt.IsValue() {
-			vals[7] = psql.Arg(s.UpdatedAt.MustGet())
-		} else {
-			vals[7] = psql.Raw("DEFAULT")
 		}
 
 		return bob.ExpressSlice(ctx, w, d, start, vals, "", ", ", "")
@@ -227,7 +210,7 @@ func (s ArticleSetter) UpdateMod() bob.Mod[*dialect.UpdateQuery] {
 }
 
 func (s ArticleSetter) Expressions(prefix ...string) []bob.Expression {
-	exprs := make([]bob.Expression, 0, 8)
+	exprs := make([]bob.Expression, 0, 7)
 
 	if s.ID.IsValue() {
 		exprs = append(exprs, expr.Join{Sep: " = ", Exprs: []bob.Expression{
@@ -240,13 +223,6 @@ func (s ArticleSetter) Expressions(prefix ...string) []bob.Expression {
 		exprs = append(exprs, expr.Join{Sep: " = ", Exprs: []bob.Expression{
 			psql.Quote(append(prefix, "user_id")...),
 			psql.Arg(s.UserID),
-		}})
-	}
-
-	if !s.PromptRunJobID.IsUnset() {
-		exprs = append(exprs, expr.Join{Sep: " = ", Exprs: []bob.Expression{
-			psql.Quote(append(prefix, "prompt_run_job_id")...),
-			psql.Arg(s.PromptRunJobID),
 		}})
 	}
 
@@ -535,30 +511,6 @@ func (os ArticleSlice) ArticleShareTargets(mods ...bob.Mod[*dialect.SelectQuery]
 	)...)
 }
 
-// PromptRunJob starts a query for related objects on prompt_run_jobs
-func (o *Article) PromptRunJob(mods ...bob.Mod[*dialect.SelectQuery]) PromptRunJobsQuery {
-	return PromptRunJobs.Query(append(mods,
-		sm.Where(PromptRunJobs.Columns.ID.EQ(psql.Arg(o.PromptRunJobID))),
-	)...)
-}
-
-func (os ArticleSlice) PromptRunJob(mods ...bob.Mod[*dialect.SelectQuery]) PromptRunJobsQuery {
-	pkPromptRunJobID := make(pgtypes.Array[null.Val[int64]], 0, len(os))
-	for _, o := range os {
-		if o == nil {
-			continue
-		}
-		pkPromptRunJobID = append(pkPromptRunJobID, o.PromptRunJobID)
-	}
-	PKArgExpr := psql.Select(sm.Columns(
-		psql.F("unnest", psql.Cast(psql.Arg(pkPromptRunJobID), "bigint[]")),
-	))
-
-	return PromptRunJobs.Query(append(mods,
-		sm.Where(psql.Group(PromptRunJobs.Columns.ID).OP("IN", PKArgExpr)),
-	)...)
-}
-
 // User starts a query for related objects on users
 func (o *Article) User(mods ...bob.Mod[*dialect.SelectQuery]) UsersQuery {
 	return Users.Query(append(mods,
@@ -651,54 +603,6 @@ func (article0 *Article) AttachArticleShareTargets(ctx context.Context, exec bob
 	return nil
 }
 
-func attachArticlePromptRunJob0(ctx context.Context, exec bob.Executor, count int, article0 *Article, promptRunJob1 *PromptRunJob) (*Article, error) {
-	setter := &ArticleSetter{
-		PromptRunJobID: omitnull.From(promptRunJob1.ID),
-	}
-
-	err := article0.Update(ctx, exec, setter)
-	if err != nil {
-		return nil, fmt.Errorf("attachArticlePromptRunJob0: %w", err)
-	}
-
-	return article0, nil
-}
-
-func (article0 *Article) InsertPromptRunJob(ctx context.Context, exec bob.Executor, related *PromptRunJobSetter) error {
-	var err error
-
-	promptRunJob1, err := PromptRunJobs.Insert(related).One(ctx, exec)
-	if err != nil {
-		return fmt.Errorf("inserting related objects: %w", err)
-	}
-
-	_, err = attachArticlePromptRunJob0(ctx, exec, 1, article0, promptRunJob1)
-	if err != nil {
-		return err
-	}
-
-	article0.R.PromptRunJob = promptRunJob1
-
-	promptRunJob1.R.Article = article0
-
-	return nil
-}
-
-func (article0 *Article) AttachPromptRunJob(ctx context.Context, exec bob.Executor, promptRunJob1 *PromptRunJob) error {
-	var err error
-
-	_, err = attachArticlePromptRunJob0(ctx, exec, 1, article0, promptRunJob1)
-	if err != nil {
-		return err
-	}
-
-	article0.R.PromptRunJob = promptRunJob1
-
-	promptRunJob1.R.Article = article0
-
-	return nil
-}
-
 func attachArticleUser0(ctx context.Context, exec bob.Executor, count int, article0 *Article, user1 *User) (*Article, error) {
 	setter := &ArticleSetter{
 		UserID: omit.From(user1.ID),
@@ -748,14 +652,13 @@ func (article0 *Article) AttachUser(ctx context.Context, exec bob.Executor, user
 }
 
 type articleWhere[Q psql.Filterable] struct {
-	ID             psql.WhereMod[Q, int64]
-	UserID         psql.WhereMod[Q, int64]
-	PromptRunJobID psql.WhereNullMod[Q, int64]
-	Title          psql.WhereMod[Q, string]
-	Content        psql.WhereMod[Q, string]
-	DeletedAt      psql.WhereNullMod[Q, time.Time]
-	CreatedAt      psql.WhereMod[Q, time.Time]
-	UpdatedAt      psql.WhereMod[Q, time.Time]
+	ID        psql.WhereMod[Q, int64]
+	UserID    psql.WhereMod[Q, int64]
+	Title     psql.WhereMod[Q, string]
+	Content   psql.WhereMod[Q, string]
+	DeletedAt psql.WhereNullMod[Q, time.Time]
+	CreatedAt psql.WhereMod[Q, time.Time]
+	UpdatedAt psql.WhereMod[Q, time.Time]
 }
 
 func (articleWhere[Q]) AliasedAs(alias string) articleWhere[Q] {
@@ -764,14 +667,13 @@ func (articleWhere[Q]) AliasedAs(alias string) articleWhere[Q] {
 
 func buildArticleWhere[Q psql.Filterable](cols articleColumns) articleWhere[Q] {
 	return articleWhere[Q]{
-		ID:             psql.Where[Q, int64](cols.ID),
-		UserID:         psql.Where[Q, int64](cols.UserID),
-		PromptRunJobID: psql.WhereNull[Q, int64](cols.PromptRunJobID),
-		Title:          psql.Where[Q, string](cols.Title),
-		Content:        psql.Where[Q, string](cols.Content),
-		DeletedAt:      psql.WhereNull[Q, time.Time](cols.DeletedAt),
-		CreatedAt:      psql.Where[Q, time.Time](cols.CreatedAt),
-		UpdatedAt:      psql.Where[Q, time.Time](cols.UpdatedAt),
+		ID:        psql.Where[Q, int64](cols.ID),
+		UserID:    psql.Where[Q, int64](cols.UserID),
+		Title:     psql.Where[Q, string](cols.Title),
+		Content:   psql.Where[Q, string](cols.Content),
+		DeletedAt: psql.WhereNull[Q, time.Time](cols.DeletedAt),
+		CreatedAt: psql.Where[Q, time.Time](cols.CreatedAt),
+		UpdatedAt: psql.Where[Q, time.Time](cols.UpdatedAt),
 	}
 }
 
@@ -795,18 +697,6 @@ func (o *Article) Preload(name string, retrieved any) error {
 			}
 		}
 		return nil
-	case "PromptRunJob":
-		rel, ok := retrieved.(*PromptRunJob)
-		if !ok {
-			return fmt.Errorf("article cannot load %T as %q", retrieved, name)
-		}
-
-		o.R.PromptRunJob = rel
-
-		if rel != nil {
-			rel.R.Article = o
-		}
-		return nil
 	case "User":
 		rel, ok := retrieved.(*User)
 		if !ok {
@@ -825,25 +715,11 @@ func (o *Article) Preload(name string, retrieved any) error {
 }
 
 type articlePreloader struct {
-	PromptRunJob func(...psql.PreloadOption) psql.Preloader
-	User         func(...psql.PreloadOption) psql.Preloader
+	User func(...psql.PreloadOption) psql.Preloader
 }
 
 func buildArticlePreloader() articlePreloader {
 	return articlePreloader{
-		PromptRunJob: func(opts ...psql.PreloadOption) psql.Preloader {
-			return psql.Preload[*PromptRunJob, PromptRunJobSlice](psql.PreloadRel{
-				Name: "PromptRunJob",
-				Sides: []psql.PreloadSide{
-					{
-						From:        Articles,
-						To:          PromptRunJobs,
-						FromColumns: []string{"prompt_run_job_id"},
-						ToColumns:   []string{"id"},
-					},
-				},
-			}, PromptRunJobs.Columns.Names(), opts...)
-		},
 		User: func(opts ...psql.PreloadOption) psql.Preloader {
 			return psql.Preload[*User, UserSlice](psql.PreloadRel{
 				Name: "User",
@@ -862,16 +738,12 @@ func buildArticlePreloader() articlePreloader {
 
 type articleThenLoader[Q orm.Loadable] struct {
 	ArticleShareTargets func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
-	PromptRunJob        func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
 	User                func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
 }
 
 func buildArticleThenLoader[Q orm.Loadable]() articleThenLoader[Q] {
 	type ArticleShareTargetsLoadInterface interface {
 		LoadArticleShareTargets(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
-	}
-	type PromptRunJobLoadInterface interface {
-		LoadPromptRunJob(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
 	}
 	type UserLoadInterface interface {
 		LoadUser(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
@@ -882,12 +754,6 @@ func buildArticleThenLoader[Q orm.Loadable]() articleThenLoader[Q] {
 			"ArticleShareTargets",
 			func(ctx context.Context, exec bob.Executor, retrieved ArticleShareTargetsLoadInterface, mods ...bob.Mod[*dialect.SelectQuery]) error {
 				return retrieved.LoadArticleShareTargets(ctx, exec, mods...)
-			},
-		),
-		PromptRunJob: thenLoadBuilder[Q](
-			"PromptRunJob",
-			func(ctx context.Context, exec bob.Executor, retrieved PromptRunJobLoadInterface, mods ...bob.Mod[*dialect.SelectQuery]) error {
-				return retrieved.LoadPromptRunJob(ctx, exec, mods...)
 			},
 		),
 		User: thenLoadBuilder[Q](
@@ -960,61 +826,6 @@ func (os ArticleSlice) LoadArticleShareTargets(ctx context.Context, exec bob.Exe
 	return nil
 }
 
-// LoadPromptRunJob loads the article's PromptRunJob into the .R struct
-func (o *Article) LoadPromptRunJob(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
-	if o == nil {
-		return nil
-	}
-
-	// Reset the relationship
-	o.R.PromptRunJob = nil
-
-	related, err := o.PromptRunJob(mods...).One(ctx, exec)
-	if err != nil {
-		return err
-	}
-
-	related.R.Article = o
-
-	o.R.PromptRunJob = related
-	return nil
-}
-
-// LoadPromptRunJob loads the article's PromptRunJob into the .R struct
-func (os ArticleSlice) LoadPromptRunJob(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
-	if len(os) == 0 {
-		return nil
-	}
-
-	promptRunJobs, err := os.PromptRunJob(mods...).All(ctx, exec)
-	if err != nil {
-		return err
-	}
-
-	for _, o := range os {
-		if o == nil {
-			continue
-		}
-
-		for _, rel := range promptRunJobs {
-			if !o.PromptRunJobID.IsValue() {
-				continue
-			}
-
-			if !(o.PromptRunJobID.IsValue() && o.PromptRunJobID.MustGet() == rel.ID) {
-				continue
-			}
-
-			rel.R.Article = o
-
-			o.R.PromptRunJob = rel
-			break
-		}
-	}
-
-	return nil
-}
-
 // LoadUser loads the article's User into the .R struct
 func (o *Article) LoadUser(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
 	if o == nil {
@@ -1070,7 +881,6 @@ func (os ArticleSlice) LoadUser(ctx context.Context, exec bob.Executor, mods ...
 type articleJoins[Q dialect.Joinable] struct {
 	typ                 string
 	ArticleShareTargets modAs[Q, articleShareTargetColumns]
-	PromptRunJob        modAs[Q, promptRunJobColumns]
 	User                modAs[Q, userColumns]
 }
 
@@ -1089,20 +899,6 @@ func buildArticleJoins[Q dialect.Joinable](cols articleColumns, typ string) arti
 				{
 					mods = append(mods, dialect.Join[Q](typ, ArticleShareTargets.Name().As(to.Alias())).On(
 						to.ArticleID.EQ(cols.ID),
-					))
-				}
-
-				return mods
-			},
-		},
-		PromptRunJob: modAs[Q, promptRunJobColumns]{
-			c: PromptRunJobs.Columns,
-			f: func(to promptRunJobColumns) bob.Mod[Q] {
-				mods := make(mods.QueryMods[Q], 0, 1)
-
-				{
-					mods = append(mods, dialect.Join[Q](typ, PromptRunJobs.Name().As(to.Alias())).On(
-						to.ID.EQ(cols.PromptRunJobID),
 					))
 				}
 

@@ -6,10 +6,6 @@ properties:
   user_id:
     type: integer
     format: int64
-  prompt_run_job_id:
-    type: integer
-    format: int64
-    nullable: true
   title:
     type: string
   content:

@@ -10,7 +10,6 @@ import (
 	"github.com/yoshioka0101/voiceblog/backend/internal/apperr"
 	entity "github.com/yoshioka0101/voiceblog/backend/internal/entity/article"
 	promptEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/prompt"
-	promptrunjobEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/promptrunjob"
 	transcriptionEntity "github.com/yoshioka0101/voiceblog/backend/internal/entity/transcription"
 	articleusecase "github.com/yoshioka0101/voiceblog/backend/internal/usecase/article"
 	"github.com/yoshioka0101/voiceblog/backend/internal/usecase/articlegen"
@@ -34,7 +33,7 @@ func TestCreateArticle(t *testing.T) {
 		},
 	}
 
-	uc := articleusecase.NewUseCase(repo, &promptRunJobRepositoryStub{}, &transcriptionRepositoryStub{})
+	uc := articleusecase.NewUseCase(repo, &transcriptionRepositoryStub{})
 	value, err := uc.CreateArticle(context.Background(), articleusecase.CreateArticleInput{
 		UserID:  9,
 		Title:   "title",
@@ -55,52 +54,10 @@ func TestGetArticle_Forbidden(t *testing.T) {
 		},
 	}
 
-	uc := articleusecase.NewUseCase(repo, &promptRunJobRepositoryStub{}, &transcriptionRepositoryStub{})
+	uc := articleusecase.NewUseCase(repo, &transcriptionRepositoryStub{})
 	_, err := uc.GetArticle(context.Background(), 7, 3)
 	if !errors.Is(err, articleusecase.ErrForbidden) {
 		t.Fatalf("err = %v, want ErrForbidden", err)
-	}
-}
-
-func TestCreateArticle_WithPromptRunJobID(t *testing.T) {
-	jobID := int64(21)
-	repo := &articleRepositoryStub{
-		upsertArticleByPromptRunJobIDFunc: func(_ context.Context, value *entity.Article) (*entity.Article, error) {
-			if value.PromptRunJobID == nil || *value.PromptRunJobID != jobID {
-				t.Fatalf("PromptRunJobID = %#v", value.PromptRunJobID)
-			}
-			return &entity.Article{
-				ID:             12,
-				UserID:         value.UserID,
-				PromptRunJobID: value.PromptRunJobID,
-				Title:          value.Title,
-				Content:        value.Content,
-			}, nil
-		},
-	}
-	promptRunJobRepo := &promptRunJobRepositoryStub{
-		findPromptRunJobByIDFunc: func(_ context.Context, id int64) (*promptrunjobEntity.Job, error) {
-			return &promptrunjobEntity.Job{ID: id, TranscriptionID: 33}, nil
-		},
-	}
-	transcriptionRepo := &transcriptionRepositoryStub{
-		findTranscriptionByIDFunc: func(_ context.Context, id int64) (*transcriptionEntity.Transcription, error) {
-			return &transcriptionEntity.Transcription{ID: id, UserID: 9}, nil
-		},
-	}
-
-	uc := articleusecase.NewUseCase(repo, promptRunJobRepo, transcriptionRepo)
-	value, err := uc.CreateArticle(context.Background(), articleusecase.CreateArticleInput{
-		UserID:         9,
-		PromptRunJobID: &jobID,
-		Title:          "title",
-		Content:        "content",
-	})
-	if err != nil {
-		t.Fatalf("CreateArticle failed: %v", err)
-	}
-	if value.PromptRunJobID == nil || *value.PromptRunJobID != jobID {
-		t.Fatalf("PromptRunJobID = %#v", value.PromptRunJobID)
 	}
 }
 
@@ -116,7 +73,7 @@ func TestDeleteArticle(t *testing.T) {
 		},
 	}
 
-	uc := articleusecase.NewUseCase(repo, &promptRunJobRepositoryStub{}, &transcriptionRepositoryStub{})
+	uc := articleusecase.NewUseCase(repo, &transcriptionRepositoryStub{})
 	if err := uc.DeleteArticle(context.Background(), 5, 12); err != nil {
 		t.Fatalf("DeleteArticle failed: %v", err)
 	}
@@ -162,7 +119,7 @@ func TestGenerateArticle(t *testing.T) {
 		},
 	}
 
-	uc := articleusecase.NewUseCase(repo, &promptRunJobRepositoryStub{}, transcriptionRepo).WithGenerator(promptRepo, generator)
+	uc := articleusecase.NewUseCase(repo, transcriptionRepo).WithGenerator(promptRepo, generator)
 	value, err := uc.GenerateArticle(context.Background(), articleusecase.GenerateArticleInput{
 		UserID:          9,
 		TranscriptionID: 5,
@@ -186,7 +143,7 @@ func TestGenerateArticle_ForbiddenForOtherUsersTranscription(t *testing.T) {
 		},
 	}
 
-	uc := articleusecase.NewUseCase(&articleRepositoryStub{}, &promptRunJobRepositoryStub{}, transcriptionRepo).WithGenerator(&promptRepositoryStub{}, &generatorStub{})
+	uc := articleusecase.NewUseCase(&articleRepositoryStub{}, transcriptionRepo).WithGenerator(&promptRepositoryStub{}, &generatorStub{})
 	_, err := uc.GenerateArticle(context.Background(), articleusecase.GenerateArticleInput{
 		UserID:          9,
 		TranscriptionID: 5,
@@ -210,7 +167,7 @@ func TestGenerateArticle_ForbiddenForInvisiblePrompt(t *testing.T) {
 		},
 	}
 
-	uc := articleusecase.NewUseCase(&articleRepositoryStub{}, &promptRunJobRepositoryStub{}, transcriptionRepo).WithGenerator(promptRepo, &generatorStub{})
+	uc := articleusecase.NewUseCase(&articleRepositoryStub{}, transcriptionRepo).WithGenerator(promptRepo, &generatorStub{})
 	_, err := uc.GenerateArticle(context.Background(), articleusecase.GenerateArticleInput{
 		UserID:          9,
 		TranscriptionID: 5,
@@ -244,7 +201,7 @@ func TestGenerateArticle_BlankGeneratedArticle(t *testing.T) {
 		},
 	}
 
-	uc := articleusecase.NewUseCase(repo, &promptRunJobRepositoryStub{}, transcriptionRepo).WithGenerator(promptRepo, generator)
+	uc := articleusecase.NewUseCase(repo, transcriptionRepo).WithGenerator(promptRepo, generator)
 	_, err := uc.GenerateArticle(context.Background(), articleusecase.GenerateArticleInput{
 		UserID:          9,
 		TranscriptionID: 5,
@@ -278,7 +235,7 @@ func TestGenerateArticle_RateLimited(t *testing.T) {
 		},
 	}
 
-	uc := articleusecase.NewUseCase(repo, &promptRunJobRepositoryStub{}, transcriptionRepo).WithGenerator(promptRepo, generator)
+	uc := articleusecase.NewUseCase(repo, transcriptionRepo).WithGenerator(promptRepo, generator)
 	_, err := uc.GenerateArticle(context.Background(), articleusecase.GenerateArticleInput{
 		UserID:          9,
 		TranscriptionID: 5,
@@ -303,48 +260,12 @@ func TestGenerateArticle_RateLimited(t *testing.T) {
 	}
 }
 
-func TestCreateArticle_WithPromptRunJobID_UsesTransactionRunner(t *testing.T) {
-	jobID := int64(21)
-	txRunner := &txRunnerStub{}
-	repo := &articleRepositoryStub{
-		upsertArticleByPromptRunJobIDFunc: func(_ context.Context, value *entity.Article) (*entity.Article, error) {
-			return value, nil
-		},
-	}
-	promptRunJobRepo := &promptRunJobRepositoryStub{
-		findPromptRunJobByIDFunc: func(_ context.Context, id int64) (*promptrunjobEntity.Job, error) {
-			return &promptrunjobEntity.Job{ID: id, TranscriptionID: 33}, nil
-		},
-	}
-	transcriptionRepo := &transcriptionRepositoryStub{
-		findTranscriptionByIDFunc: func(_ context.Context, id int64) (*transcriptionEntity.Transcription, error) {
-			return &transcriptionEntity.Transcription{ID: id, UserID: 9}, nil
-		},
-	}
-
-	uc := articleusecase.NewUseCase(repo, promptRunJobRepo, transcriptionRepo, txRunner)
-	_, err := uc.CreateArticle(context.Background(), articleusecase.CreateArticleInput{
-		UserID:         9,
-		PromptRunJobID: &jobID,
-		Title:          "title",
-		Content:        "content",
-	})
-	if err != nil {
-		t.Fatalf("CreateArticle failed: %v", err)
-	}
-	if !txRunner.called {
-		t.Fatal("transaction runner was not used")
-	}
-}
-
 type articleRepositoryStub struct {
-	createArticleFunc                 func(ctx context.Context, value *entity.Article) (*entity.Article, error)
-	findArticleByIDFunc               func(ctx context.Context, id int64) (*entity.Article, error)
-	findArticleByPromptRunJobIDFunc   func(ctx context.Context, promptRunJobID int64) (*entity.Article, error)
-	listArticlesByUserIDFunc          func(ctx context.Context, userID int64) ([]*entity.Article, error)
-	updateArticleFunc                 func(ctx context.Context, value *entity.Article) (*entity.Article, error)
-	deleteArticleFunc                 func(ctx context.Context, id int64) error
-	upsertArticleByPromptRunJobIDFunc func(ctx context.Context, value *entity.Article) (*entity.Article, error)
+	createArticleFunc        func(ctx context.Context, value *entity.Article) (*entity.Article, error)
+	findArticleByIDFunc      func(ctx context.Context, id int64) (*entity.Article, error)
+	listArticlesByUserIDFunc func(ctx context.Context, userID int64) ([]*entity.Article, error)
+	updateArticleFunc        func(ctx context.Context, value *entity.Article) (*entity.Article, error)
+	deleteArticleFunc        func(ctx context.Context, id int64) error
 }
 
 func (s *articleRepositoryStub) CreateArticle(ctx context.Context, value *entity.Article) (*entity.Article, error) {
@@ -353,13 +274,6 @@ func (s *articleRepositoryStub) CreateArticle(ctx context.Context, value *entity
 
 func (s *articleRepositoryStub) FindArticleByID(ctx context.Context, id int64) (*entity.Article, error) {
 	return s.findArticleByIDFunc(ctx, id)
-}
-
-func (s *articleRepositoryStub) FindArticleByPromptRunJobID(ctx context.Context, promptRunJobID int64) (*entity.Article, error) {
-	if s.findArticleByPromptRunJobIDFunc == nil {
-		return nil, nil
-	}
-	return s.findArticleByPromptRunJobIDFunc(ctx, promptRunJobID)
 }
 
 func (s *articleRepositoryStub) ListArticlesByUserID(ctx context.Context, userID int64) ([]*entity.Article, error) {
@@ -372,29 +286,6 @@ func (s *articleRepositoryStub) UpdateArticle(ctx context.Context, value *entity
 
 func (s *articleRepositoryStub) DeleteArticle(ctx context.Context, id int64) error {
 	return s.deleteArticleFunc(ctx, id)
-}
-
-func (s *articleRepositoryStub) UpsertArticleByPromptRunJobID(ctx context.Context, value *entity.Article) (*entity.Article, error) {
-	return s.upsertArticleByPromptRunJobIDFunc(ctx, value)
-}
-
-type promptRunJobRepositoryStub struct {
-	findPromptRunJobByIDFunc func(ctx context.Context, id int64) (*promptrunjobEntity.Job, error)
-}
-
-func (s *promptRunJobRepositoryStub) CreatePromptRunJob(_ context.Context, _ *promptrunjobEntity.Job) (*promptrunjobEntity.Job, error) {
-	return nil, errors.New("not implemented")
-}
-
-func (s *promptRunJobRepositoryStub) FindPromptRunJobByID(ctx context.Context, id int64) (*promptrunjobEntity.Job, error) {
-	if s.findPromptRunJobByIDFunc == nil {
-		return nil, errors.New("findPromptRunJobByIDFunc is nil")
-	}
-	return s.findPromptRunJobByIDFunc(ctx, id)
-}
-
-func (s *promptRunJobRepositoryStub) UpdatePromptRunJob(_ context.Context, _ *promptrunjobEntity.Job) (*promptrunjobEntity.Job, error) {
-	return nil, errors.New("not implemented")
 }
 
 type transcriptionRepositoryStub struct {
@@ -414,15 +305,6 @@ func (s *transcriptionRepositoryStub) FindTranscriptionByID(ctx context.Context,
 		return nil, errors.New("findTranscriptionByIDFunc is nil")
 	}
 	return s.findTranscriptionByIDFunc(ctx, id)
-}
-
-type txRunnerStub struct {
-	called bool
-}
-
-func (s *txRunnerStub) RunInTx(ctx context.Context, fn func(context.Context) error) error {
-	s.called = true
-	return fn(ctx)
 }
 
 type promptRepositoryStub struct {

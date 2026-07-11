@@ -20,7 +20,6 @@ type preloaders struct {
 	ArticleShareTarget articleShareTargetPreloader
 	Article            articlePreloader
 	ExternalToken      externalTokenPreloader
-	PromptRunJob       promptRunJobPreloader
 	Prompt             promptPreloader
 	Transcription      transcriptionPreloader
 	User               userPreloader
@@ -31,7 +30,6 @@ func getPreloaders() preloaders {
 		ArticleShareTarget: buildArticleShareTargetPreloader(),
 		Article:            buildArticlePreloader(),
 		ExternalToken:      buildExternalTokenPreloader(),
-		PromptRunJob:       buildPromptRunJobPreloader(),
 		Prompt:             buildPromptPreloader(),
 		Transcription:      buildTranscriptionPreloader(),
 		User:               buildUserPreloader(),
@@ -48,7 +46,6 @@ type thenLoaders[Q orm.Loadable] struct {
 	ArticleShareTarget articleShareTargetThenLoader[Q]
 	Article            articleThenLoader[Q]
 	ExternalToken      externalTokenThenLoader[Q]
-	PromptRunJob       promptRunJobThenLoader[Q]
 	Prompt             promptThenLoader[Q]
 	Transcription      transcriptionThenLoader[Q]
 	User               userThenLoader[Q]
@@ -59,7 +56,6 @@ func getThenLoaders[Q orm.Loadable]() thenLoaders[Q] {
 		ArticleShareTarget: buildArticleShareTargetThenLoader[Q](),
 		Article:            buildArticleThenLoader[Q](),
 		ExternalToken:      buildExternalTokenThenLoader[Q](),
-		PromptRunJob:       buildPromptRunJobThenLoader[Q](),
 		Prompt:             buildPromptThenLoader[Q](),
 		Transcription:      buildTranscriptionThenLoader[Q](),
 		User:               buildUserThenLoader[Q](),

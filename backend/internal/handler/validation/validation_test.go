@@ -70,10 +70,6 @@ func TestCreateArticleInput(t *testing.T) {
 
 	_, err = CreateArticleInput(1, api.CreateArticleRequest{Title: "t", Content: ""})
 	assertBadRequestCode(t, err, "content_required")
-
-	badID := int64(0)
-	_, err = CreateArticleInput(1, api.CreateArticleRequest{Title: "t", Content: "c", PromptRunJobId: &badID})
-	assertBadRequestCode(t, err, "invalid_id")
 }
 
 func TestUpdateArticleInput(t *testing.T) {
@@ -149,13 +145,4 @@ func TestCreateTranscriptionInput(t *testing.T) {
 
 	_, err = CreateTranscriptionInput(1, api.CreateTranscriptionRequest{FullText: "hello"})
 	assertBadRequestCode(t, err, "segments_required")
-}
-
-func TestCreatePromptRunJobInput(t *testing.T) {
-	if _, err := CreatePromptRunJobInput(1, api.CreatePromptRunJobRequest{TranscriptionId: 1, PromptId: 2}); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	_, err := CreatePromptRunJobInput(1, api.CreatePromptRunJobRequest{TranscriptionId: 0, PromptId: 2})
-	assertBadRequestCode(t, err, "invalid_id")
 }

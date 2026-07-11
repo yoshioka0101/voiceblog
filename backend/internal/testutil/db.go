@@ -148,39 +148,17 @@ func SeedTranscription(t *testing.T, db *sql.DB, userID int64, fullText, segment
 	return id
 }
 
-func SeedPromptRunJob(t *testing.T, db *sql.DB, transcriptionID, promptID int64, status string, attemptCount int, errorMessage, generatedTitle, generatedContent *string) int64 {
+func SeedArticle(t *testing.T, db *sql.DB, userID int64, title, content string) int64 {
 	t.Helper()
 
 	const query = `
-		INSERT INTO prompt_run_jobs (transcription_id, prompt_id, status, attempt_count, next_run_at, error_message, generated_title, generated_content)
-		VALUES ($1, $2, $3, $4, NOW(), $5, $6, $7)
+		INSERT INTO articles (user_id, title, content)
+		VALUES ($1, $2, $3)
 		RETURNING id
 	`
 
 	var id int64
-	if err := db.QueryRowContext(context.Background(), query, transcriptionID, promptID, status, attemptCount, errorMessage, generatedTitle, generatedContent).Scan(&id); err != nil {
-		t.Fatalf("failed to seed prompt run job: %v", err)
-	}
-
-	return id
-}
-
-func SeedArticle(t *testing.T, db *sql.DB, userID int64, promptRunJobID *int64, title, content string) int64 {
-	t.Helper()
-
-	const query = `
-		INSERT INTO articles (user_id, prompt_run_job_id, title, content)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id
-	`
-
-	var id int64
-	var nullablePromptRunJobID any
-	if promptRunJobID != nil {
-		nullablePromptRunJobID = *promptRunJobID
-	}
-
-	if err := db.QueryRowContext(context.Background(), query, userID, nullablePromptRunJobID, title, content).Scan(&id); err != nil {
+	if err := db.QueryRowContext(context.Background(), query, userID, title, content).Scan(&id); err != nil {
 		t.Fatalf("failed to seed article: %v", err)
 	}
 

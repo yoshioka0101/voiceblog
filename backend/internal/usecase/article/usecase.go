@@ -20,10 +20,9 @@ var (
 )
 
 type CreateArticleInput struct {
-	UserID         int64
-	PromptRunJobID *int64
-	Title          string
-	Content        string
+	UserID  int64
+	Title   string
+	Content string
 }
 
 type UpdateArticleInput struct {
@@ -41,7 +40,6 @@ type GenerateArticleInput struct {
 
 type UseCase struct {
 	repo              repository.ArticleRepository
-	promptRunJobRepo  repository.PromptRunJobRepository
 	transcriptionRepo repository.TranscriptionRepository
 	promptRepo        repository.PromptRepository
 	generator         articlegen.Generator
@@ -50,7 +48,6 @@ type UseCase struct {
 
 func NewUseCase(
 	repo repository.ArticleRepository,
-	promptRunJobRepo repository.PromptRunJobRepository,
 	transcriptionRepo repository.TranscriptionRepository,
 	txRunners ...dbtx.TxRunner,
 ) *UseCase {
@@ -61,7 +58,6 @@ func NewUseCase(
 
 	return &UseCase{
 		repo:              repo,
-		promptRunJobRepo:  promptRunJobRepo,
 		transcriptionRepo: transcriptionRepo,
 		txRunner:          txRunner,
 	}
@@ -86,44 +82,7 @@ func (uc *UseCase) CreateArticle(ctx context.Context, input CreateArticleInput) 
 		Content: content,
 	}
 
-	if input.PromptRunJobID == nil {
-		return uc.repo.CreateArticle(ctx, article)
-	}
-
-	if uc.txRunner == nil {
-		return uc.createArticleFromPromptRunJob(ctx, article, input.UserID, *input.PromptRunJobID)
-	}
-
-	var created *entity.Article
-	err := uc.txRunner.RunInTx(ctx, func(txCtx context.Context) error {
-		var err error
-		created, err = uc.createArticleFromPromptRunJob(txCtx, article, input.UserID, *input.PromptRunJobID)
-		return err
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return created, nil
-}
-
-func (uc *UseCase) createArticleFromPromptRunJob(ctx context.Context, article *entity.Article, userID int64, promptRunJobID int64) (*entity.Article, error) {
-	job, err := uc.promptRunJobRepo.FindPromptRunJobByID(ctx, promptRunJobID)
-	if err != nil {
-		return nil, err
-	}
-
-	transcriptionValue, err := uc.transcriptionRepo.FindTranscriptionByID(ctx, job.TranscriptionID)
-	if err != nil {
-		return nil, err
-	}
-	if transcriptionValue.UserID != userID {
-		return nil, ErrForbidden
-	}
-
-	article.PromptRunJobID = &promptRunJobID
-
-	return uc.repo.UpsertArticleByPromptRunJobID(ctx, article)
+	return uc.repo.CreateArticle(ctx, article)
 }
 
 func (uc *UseCase) GenerateArticle(ctx context.Context, input GenerateArticleInput) (*articlegen.GeneratedArticle, error) {

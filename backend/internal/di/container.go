@@ -17,7 +17,6 @@ import (
 	authUseCase "github.com/yoshioka0101/voiceblog/backend/internal/usecase/auth"
 	integrationUseCase "github.com/yoshioka0101/voiceblog/backend/internal/usecase/integration"
 	promptUseCase "github.com/yoshioka0101/voiceblog/backend/internal/usecase/prompt"
-	promptRunJobUseCase "github.com/yoshioka0101/voiceblog/backend/internal/usecase/promptrunjob"
 	publishUseCase "github.com/yoshioka0101/voiceblog/backend/internal/usecase/publish"
 	transcriptionUseCase "github.com/yoshioka0101/voiceblog/backend/internal/usecase/transcription"
 	userUseCase "github.com/yoshioka0101/voiceblog/backend/internal/usecase/user"
@@ -28,7 +27,6 @@ type Repositories struct {
 	Prompt             repository.PromptRepository
 	Transcription      repository.TranscriptionRepository
 	Article            repository.ArticleRepository
-	PromptRunJob       repository.PromptRunJobRepository
 	ExternalToken      repository.ExternalTokenRepository
 	ArticleShareTarget repository.ArticleShareTargetRepository
 }
@@ -39,7 +37,6 @@ type UseCases struct {
 	Prompt        *promptUseCase.UseCase
 	Transcription *transcriptionUseCase.UseCase
 	Article       *articleUseCase.UseCase
-	PromptRunJob  *promptRunJobUseCase.UseCase
 	Integration   *integrationUseCase.UseCase
 	Publish       *publishUseCase.UseCase
 }
@@ -55,7 +52,6 @@ func New(db *sql.DB, googleClientID, geminiAPIKey, geminiModel, tokenEncryptionK
 	promptRepo := postgresql.NewPromptRepository(db)
 	transcriptionRepo := postgresql.NewTranscriptionRepository(db)
 	articleRepo := postgresql.NewArticleRepository(db)
-	promptRunJobRepo := postgresql.NewPromptRunJobRepository(db)
 	externalTokenRepo := postgresql.NewExternalTokenRepository(db)
 	articleShareTargetRepo := postgresql.NewArticleShareTargetRepository(db)
 	geminiClient := gemini.NewClient(geminiAPIKey, geminiModel)
@@ -66,7 +62,6 @@ func New(db *sql.DB, googleClientID, geminiAPIKey, geminiModel, tokenEncryptionK
 		Prompt:             promptRepo,
 		Transcription:      transcriptionRepo,
 		Article:            articleRepo,
-		PromptRunJob:       promptRunJobRepo,
 		ExternalToken:      externalTokenRepo,
 		ArticleShareTarget: articleShareTargetRepo,
 	}
@@ -76,8 +71,7 @@ func New(db *sql.DB, googleClientID, geminiAPIKey, geminiModel, tokenEncryptionK
 		User:          userUseCase.NewUseCase(repos.User),
 		Prompt:        promptUseCase.NewUseCase(repos.Prompt, txRunner),
 		Transcription: transcriptionUseCase.NewUseCase(repos.Transcription),
-		Article:       articleUseCase.NewUseCase(repos.Article, repos.PromptRunJob, repos.Transcription, txRunner).WithGenerator(repos.Prompt, geminiClient),
-		PromptRunJob:  promptRunJobUseCase.NewUseCase(repos.PromptRunJob, repos.Transcription, repos.Prompt, geminiClient, txRunner),
+		Article:       articleUseCase.NewUseCase(repos.Article, repos.Transcription, txRunner).WithGenerator(repos.Prompt, geminiClient),
 	}
 
 	if tokenEncryptionKey != "" {

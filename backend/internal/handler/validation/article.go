@@ -15,15 +15,11 @@ func CreateArticleInput(userID int64, req api.CreateArticleRequest) (usecase.Cre
 	if strings.TrimSpace(req.Content) == "" {
 		return usecase.CreateArticleInput{}, apperr.BadRequestWithCode("content_required", "content is required")
 	}
-	if req.PromptRunJobId != nil && *req.PromptRunJobId <= 0 {
-		return usecase.CreateArticleInput{}, apperr.BadRequestWithCode("invalid_id", "prompt_run_job_id must be positive")
-	}
 
 	return usecase.CreateArticleInput{
-		UserID:         userID,
-		PromptRunJobID: req.PromptRunJobId,
-		Title:          req.Title,
-		Content:        req.Content,
+		UserID:  userID,
+		Title:   req.Title,
+		Content: req.Content,
 	}, nil
 }
 

@@ -7,14 +7,13 @@ import (
 
 func Article(value *entity.Article) api.ArticleResponse {
 	return api.ArticleResponse{
-		Id:             value.ID,
-		UserId:         value.UserID,
-		PromptRunJobId: value.PromptRunJobID,
-		Title:          value.Title,
-		Content:        value.Content,
-		DeletedAt:      value.DeletedAt,
-		CreatedAt:      value.CreatedAt,
-		UpdatedAt:      value.UpdatedAt,
+		Id:        value.ID,
+		UserId:    value.UserID,
+		Title:     value.Title,
+		Content:   value.Content,
+		DeletedAt: value.DeletedAt,
+		CreatedAt: value.CreatedAt,
+		UpdatedAt: value.UpdatedAt,
 	}
 }
 

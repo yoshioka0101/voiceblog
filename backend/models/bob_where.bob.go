@@ -20,7 +20,6 @@ func Where[Q psql.Filterable]() struct {
 	ArticleShareTargets articleShareTargetWhere[Q]
 	Articles            articleWhere[Q]
 	ExternalTokens      externalTokenWhere[Q]
-	PromptRunJobs       promptRunJobWhere[Q]
 	Prompts             promptWhere[Q]
 	Transcriptions      transcriptionWhere[Q]
 	Users               userWhere[Q]
@@ -29,7 +28,6 @@ func Where[Q psql.Filterable]() struct {
 		ArticleShareTargets articleShareTargetWhere[Q]
 		Articles            articleWhere[Q]
 		ExternalTokens      externalTokenWhere[Q]
-		PromptRunJobs       promptRunJobWhere[Q]
 		Prompts             promptWhere[Q]
 		Transcriptions      transcriptionWhere[Q]
 		Users               userWhere[Q]
@@ -37,7 +35,6 @@ func Where[Q psql.Filterable]() struct {
 		ArticleShareTargets: buildArticleShareTargetWhere[Q](ArticleShareTargets.Columns),
 		Articles:            buildArticleWhere[Q](Articles.Columns),
 		ExternalTokens:      buildExternalTokenWhere[Q](ExternalTokens.Columns),
-		PromptRunJobs:       buildPromptRunJobWhere[Q](PromptRunJobs.Columns),
 		Prompts:             buildPromptWhere[Q](Prompts.Columns),
 		Transcriptions:      buildTranscriptionWhere[Q](Transcriptions.Columns),
 		Users:               buildUserWhere[Q](Users.Columns),

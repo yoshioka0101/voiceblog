@@ -35,7 +35,6 @@ type joins[Q dialect.Joinable] struct {
 	ArticleShareTargets joinSet[articleShareTargetJoins[Q]]
 	Articles            joinSet[articleJoins[Q]]
 	ExternalTokens      joinSet[externalTokenJoins[Q]]
-	PromptRunJobs       joinSet[promptRunJobJoins[Q]]
 	Prompts             joinSet[promptJoins[Q]]
 	Transcriptions      joinSet[transcriptionJoins[Q]]
 	Users               joinSet[userJoins[Q]]
@@ -54,7 +53,6 @@ func getJoins[Q dialect.Joinable]() joins[Q] {
 		ArticleShareTargets: buildJoinSet[articleShareTargetJoins[Q]](ArticleShareTargets.Columns, buildArticleShareTargetJoins),
 		Articles:            buildJoinSet[articleJoins[Q]](Articles.Columns, buildArticleJoins),
 		ExternalTokens:      buildJoinSet[externalTokenJoins[Q]](ExternalTokens.Columns, buildExternalTokenJoins),
-		PromptRunJobs:       buildJoinSet[promptRunJobJoins[Q]](PromptRunJobs.Columns, buildPromptRunJobJoins),
 		Prompts:             buildJoinSet[promptJoins[Q]](Prompts.Columns, buildPromptJoins),
 		Transcriptions:      buildJoinSet[transcriptionJoins[Q]](Transcriptions.Columns, buildTranscriptionJoins),
 		Users:               buildJoinSet[userJoins[Q]](Users.Columns, buildUserJoins),

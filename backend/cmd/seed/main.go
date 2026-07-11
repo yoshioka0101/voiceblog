@@ -44,7 +44,7 @@ func main() {
 	)
 	log.Printf("  created transcription: id=%d", transcriptionID)
 
-	articleID := seedArticle(ctx, db, userID, nil, "手動で作成した記事", "これは手動で作成したテスト記事です。")
+	articleID := seedArticle(ctx, db, userID, "手動で作成した記事", "これは手動で作成したテスト記事です。")
 	log.Printf("  created article: id=%d", articleID)
 
 	log.Println("seed completed successfully")
@@ -90,15 +90,11 @@ func seedTranscription(ctx context.Context, db *sql.DB, userID int64, fullText, 
 	return id
 }
 
-func seedArticle(ctx context.Context, db *sql.DB, userID int64, promptRunJobID *int64, title, content string) int64 {
+func seedArticle(ctx context.Context, db *sql.DB, userID int64, title, content string) int64 {
 	var id int64
-	var nullableID any
-	if promptRunJobID != nil {
-		nullableID = *promptRunJobID
-	}
 	err := db.QueryRowContext(ctx,
-		`INSERT INTO articles (user_id, prompt_run_job_id, title, content) VALUES ($1, $2, $3, $4) RETURNING id`,
-		userID, nullableID, title, content,
+		`INSERT INTO articles (user_id, title, content) VALUES ($1, $2, $3) RETURNING id`,
+		userID, title, content,
 	).Scan(&id)
 	if err != nil {
 		log.Fatalf("failed to seed article: %v", err)

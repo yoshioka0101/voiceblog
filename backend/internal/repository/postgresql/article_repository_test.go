@@ -38,8 +38,8 @@ func TestListArticlesByUserID_ExcludesDeleted(t *testing.T) {
 	userID := testutil.SeedUser(t, db, "google", "sub-article-list", "article-list@example.com", "Article List User")
 	repo := postgresql.NewArticleRepository(db)
 
-	visibleID := testutil.SeedArticle(t, db, userID, nil, "visible", "visible content")
-	deletedID := testutil.SeedArticle(t, db, userID, nil, "deleted", "deleted content")
+	visibleID := testutil.SeedArticle(t, db, userID, "visible", "visible content")
+	deletedID := testutil.SeedArticle(t, db, userID, "deleted", "deleted content")
 
 	if err := repo.DeleteArticle(context.Background(), deletedID); err != nil {
 		t.Fatalf("DeleteArticle failed: %v", err)
@@ -52,42 +52,6 @@ func TestListArticlesByUserID_ExcludesDeleted(t *testing.T) {
 
 	if len(values) != 1 || values[0].ID != visibleID {
 		t.Fatalf("articles = %#v", values)
-	}
-}
-
-func TestUpsertArticleByPromptRunJobID(t *testing.T) {
-	db := testutil.SetupTestDB(t)
-	userID := testutil.SeedUser(t, db, "google", "sub-article-upsert", "article-upsert@example.com", "Article Upsert User")
-	transcriptionID := testutil.SeedTranscription(t, db, userID, "text", `[{"text":"text"}]`)
-	promptID := testutil.SeedPrompt(t, db, nil, "system", "body", true, true)
-	jobID := testutil.SeedPromptRunJob(t, db, transcriptionID, promptID, "completed", 1, nil, nil, nil)
-	repo := postgresql.NewArticleRepository(db)
-
-	first, err := repo.UpsertArticleByPromptRunJobID(context.Background(), &entity.Article{
-		UserID:         userID,
-		PromptRunJobID: &jobID,
-		Title:          "first",
-		Content:        "first content",
-	})
-	if err != nil {
-		t.Fatalf("first upsert failed: %v", err)
-	}
-
-	second, err := repo.UpsertArticleByPromptRunJobID(context.Background(), &entity.Article{
-		UserID:         userID,
-		PromptRunJobID: &jobID,
-		Title:          "second",
-		Content:        "second content",
-	})
-	if err != nil {
-		t.Fatalf("second upsert failed: %v", err)
-	}
-
-	if first.ID != second.ID {
-		t.Fatalf("IDs = %d and %d, want same", first.ID, second.ID)
-	}
-	if second.Title != "second" {
-		t.Fatalf("Title = %q", second.Title)
 	}
 }
 

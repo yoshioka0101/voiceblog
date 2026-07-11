@@ -24,7 +24,6 @@ func Transcription(value *entity.Transcription) (api.TranscriptionResponse, erro
 	}, nil
 }
 
-
 func decodeSegmentsJSON(raw json.RawMessage) ([]map[string]interface{}, error) {
 	var segments []map[string]interface{}
 	if err := json.Unmarshal(raw, &segments); err != nil {

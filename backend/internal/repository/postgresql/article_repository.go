@@ -12,7 +12,6 @@ import (
 	"github.com/stephenafamo/bob"
 	"github.com/stephenafamo/bob/dialect/psql"
 	"github.com/stephenafamo/bob/dialect/psql/dialect"
-	"github.com/stephenafamo/bob/dialect/psql/im"
 	"github.com/stephenafamo/bob/dialect/psql/sm"
 
 	dbctx "github.com/yoshioka0101/voiceblog/backend/internal/db"
@@ -36,10 +35,9 @@ func NewArticleRepositoryWithExecutor(exec bob.Executor) *ArticleRepository {
 func (r *ArticleRepository) CreateArticle(ctx context.Context, value *entity.Article) (*entity.Article, error) {
 	exec := dbctx.ExecutorFromContext(ctx, r.db)
 	modelValue, err := models.Articles.Insert(&models.ArticleSetter{
-		UserID:         omit.From(value.UserID),
-		PromptRunJobID: omitnull.FromPtr(value.PromptRunJobID),
-		Title:          omit.From(value.Title),
-		Content:        omit.From(value.Content),
+		UserID:  omit.From(value.UserID),
+		Title:   omit.From(value.Title),
+		Content: omit.From(value.Content),
 	}).One(ctx, exec)
 	if err != nil {
 		return nil, fmt.Errorf("insert article: %w", err)
@@ -67,25 +65,6 @@ func (r *ArticleRepository) FindArticleByID(ctx context.Context, id int64) (*ent
 			return nil, articleusecase.ErrNotFound
 		}
 		return nil, fmt.Errorf("find article: %w", err)
-	}
-
-	return toArticleEntity(modelValue), nil
-}
-
-func (r *ArticleRepository) FindArticleByPromptRunJobID(ctx context.Context, promptRunJobID int64) (*entity.Article, error) {
-	exec := dbctx.ExecutorFromContext(ctx, r.db)
-	modelValue, err := models.Articles.Query(
-		sm.Where(
-			models.Articles.Columns.PromptRunJobID.EQ(psql.Arg(promptRunJobID)).And(
-				models.Articles.Columns.DeletedAt.IsNull(),
-			),
-		),
-	).One(ctx, exec)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("find article by prompt run job id: %w", err)
 	}
 
 	return toArticleEntity(modelValue), nil
@@ -159,48 +138,18 @@ func (r *ArticleRepository) DeleteArticle(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (r *ArticleRepository) UpsertArticleByPromptRunJobID(ctx context.Context, value *entity.Article) (*entity.Article, error) {
-	if value.PromptRunJobID == nil {
-		return r.CreateArticle(ctx, value)
-	}
-
-	exec := dbctx.ExecutorFromContext(ctx, r.db)
-	now := time.Now()
-	var deletedAt *time.Time
-	modelValue, err := models.Articles.Insert(
-		&models.ArticleSetter{
-			UserID:         omit.From(value.UserID),
-			PromptRunJobID: omitnull.FromPtr(value.PromptRunJobID),
-			Title:          omit.From(value.Title),
-			Content:        omit.From(value.Content),
-			DeletedAt:      omitnull.FromPtr(deletedAt),
-			UpdatedAt:      omit.From(now),
-		},
-		im.OnConflict("prompt_run_job_id").DoUpdate(
-			im.SetExcluded("title", "content", "updated_at"),
-			im.SetCol("deleted_at").To(psql.Raw("NULL")),
-		),
-	).One(ctx, exec)
-	if err != nil {
-		return nil, fmt.Errorf("upsert article: %w", err)
-	}
-
-	return toArticleEntity(modelValue), nil
-}
-
 func toArticleEntity(value *models.Article) *entity.Article {
 	if value == nil {
 		return nil
 	}
 
 	return &entity.Article{
-		ID:             value.ID,
-		UserID:         value.UserID,
-		PromptRunJobID: value.PromptRunJobID.Ptr(),
-		Title:          value.Title,
-		Content:        value.Content,
-		DeletedAt:      value.DeletedAt.Ptr(),
-		CreatedAt:      value.CreatedAt,
-		UpdatedAt:      value.UpdatedAt,
+		ID:        value.ID,
+		UserID:    value.UserID,
+		Title:     value.Title,
+		Content:   value.Content,
+		DeletedAt: value.DeletedAt.Ptr(),
+		CreatedAt: value.CreatedAt,
+		UpdatedAt: value.UpdatedAt,
 	}
 }

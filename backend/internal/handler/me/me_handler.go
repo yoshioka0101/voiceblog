@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/yoshioka0101/voiceblog/backend/internal/api"
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler/httperror"
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler/middleware"
+	presenter "github.com/yoshioka0101/voiceblog/backend/internal/presenter/user"
 )
 
 func RegisterRoutes(r gin.IRoutes, auth gin.HandlerFunc) {
@@ -20,17 +20,5 @@ func Me(c *gin.Context) {
 		httperror.Unauthorized(c)
 		return
 	}
-	c.JSON(http.StatusOK, api.UserResponse{
-		Id:           u.ID,
-		Email:        stringOrNil(u.Email),
-		Name:         stringOrNil(u.Name),
-		AuthProvider: u.AuthProvider,
-	})
-}
-
-func stringOrNil(v string) *string {
-	if v == "" {
-		return nil
-	}
-	return &v
+	c.JSON(http.StatusOK, presenter.User(u))
 }

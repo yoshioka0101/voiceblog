@@ -10,7 +10,6 @@ import (
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler/me"
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler/middleware"
 	prompthandler "github.com/yoshioka0101/voiceblog/backend/internal/handler/prompt"
-	promptrunjobhandler "github.com/yoshioka0101/voiceblog/backend/internal/handler/promptrunjob"
 	publishhandler "github.com/yoshioka0101/voiceblog/backend/internal/handler/publish"
 	transcriptionhandler "github.com/yoshioka0101/voiceblog/backend/internal/handler/transcription"
 )
@@ -24,7 +23,6 @@ func RegisterRoutes(r *gin.Engine, c *di.Container) {
 	authGroup.Use(auth)
 	articlehandler.RegisterProtectedRoutes(authGroup, c.UseCases.Article)
 	prompthandler.RegisterProtectedRoutes(authGroup, c.UseCases.Prompt)
-	promptrunjobhandler.RegisterProtectedRoutes(authGroup, c.UseCases.PromptRunJob)
 	transcriptionhandler.RegisterProtectedRoutes(authGroup, c.UseCases.Transcription)
 
 	if c.UseCases.Integration != nil {

@@ -50,9 +50,9 @@ voiceblog/
 |---|---|
 | バックエンド | Go 1.26.1 / Gin / PostgreSQL |
 | ORM / クエリビルダ | bob |
-| 認証 | OIDC（Google JWT検証） |
+| 認証 | デバイストークン（iOS、匿名ユーザー）/ OIDC（Google JWT検証） |
 | iOS | SwiftUI / @Observable (iOS 17+) |
-| iOS 認証 | Google Sign-In SDK |
+| iOS 認証 | ログインなし。端末ごとの秘密値を Keychain に保存して API に送る |
 | DB マイグレーション | Atlas |
 | テスト | testcontainers-go（インテグレーション） |
 | コンテナ | Docker Compose / colima |
@@ -96,7 +96,9 @@ make dev
 
 ### モバイルアプリ (iOS)
 
-Xcode 15 以上が必要。Google Sign-In SDK は SPM で管理。
+Xcode 15 以上が必要。外部パッケージへの依存はありません。
+
+iOS アプリにログイン画面はありません。初回起動時に 32 byte の秘密値を生成して Keychain に保存し、`Authorization: Bearer vbd_<base64url>` で API を呼びます。サーバーは秘密値の SHA-256 で匿名ユーザーを特定します。設定メニューの「データを削除」で `DELETE /me` を呼び、サーバー上のデータと端末の秘密値を消します。
 
 ```bash
 cd ios
@@ -140,7 +142,7 @@ View → ViewModel (AuthManager) → Model / Service (APIClient)
 
 - **Models**: データ構造（`Codable`）
 - **Views**: SwiftUI の宣言的 UI
-- **Auth**: 認証状態管理（ViewModel 相当）
+- **Auth**: 端末認証（Keychain の秘密値）とデータ削除
 - **Network**: API 通信（`actor` でスレッドセーフ）
 
 ## API ドキュメント

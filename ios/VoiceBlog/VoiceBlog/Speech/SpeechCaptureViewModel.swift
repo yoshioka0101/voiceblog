@@ -141,7 +141,7 @@ final class SpeechCaptureViewModel {
             statusMessage = "文字起こしを保存しています。"
 
             logger.debug("saveTranscription: fetching token")
-            let token = try await auth.fetchIDToken()
+            let token = try await auth.fetchToken()
             logger.debug("saveTranscription: token acquired, sending request")
             let created = try await APIClient.shared.createTranscription(
                 request: TranscriptionCreateRequest(

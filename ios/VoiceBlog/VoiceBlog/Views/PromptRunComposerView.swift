@@ -130,7 +130,7 @@ struct PromptRunComposerView: View {
         defer { isLoading = false }
 
         do {
-            let token = try await auth.fetchIDToken()
+            let token = try await auth.fetchToken()
             prompts = try await APIClient.shared.getListPrompts(token: token)
             if selectedPromptId == nil {
                 selectedPromptId = prompts.first?.id
@@ -152,7 +152,7 @@ struct PromptRunComposerView: View {
         defer { isGenerating = false }
 
         do {
-            let token = try await auth.fetchIDToken()
+            let token = try await auth.fetchToken()
             let article = try await APIClient.shared.generateArticle(
                 request: ArticleGenerateRequest(transcriptionId: transcription.id, promptId: selectedPrompt.id),
                 token: token
@@ -283,7 +283,7 @@ private struct GeneratedArticlePreviewView: View {
         defer { isSaving = false }
 
         do {
-            let token = try await auth.fetchIDToken()
+            let token = try await auth.fetchToken()
             let article = try await APIClient.shared.createArticle(
                 request: ArticleCreateRequest(title: draft.title, content: draft.content),
                 token: token

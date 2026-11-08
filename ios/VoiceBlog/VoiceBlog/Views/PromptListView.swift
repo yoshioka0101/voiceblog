@@ -226,7 +226,7 @@ struct PromptListView: View {
         defer { isLoading = false }
 
         do {
-            let token = try await auth.fetchIDToken()
+            let token = try await auth.fetchToken()
             prompts = try await APIClient.shared.getListPrompts(token: token)
         } catch {
             errorMessage = error.userFacingMessage(fallback: "プロンプトの取得に失敗しました。しばらくしてからもう一度お試しください。")
@@ -235,7 +235,7 @@ struct PromptListView: View {
 
     @MainActor
     private func createPrompt(_ draft: PromptDraft) async throws {
-        let token = try await auth.fetchIDToken()
+        let token = try await auth.fetchToken()
         let created = try await APIClient.shared.createPrompt(
             request: PromptCreateRequest(name: draft.name, body: draft.body, isActive: draft.isActive),
             token: token
@@ -245,7 +245,7 @@ struct PromptListView: View {
 
     @MainActor
     private func updatePrompt(_ prompt: Prompt, draft: PromptDraft) async throws {
-        let token = try await auth.fetchIDToken()
+        let token = try await auth.fetchToken()
         let updated = try await APIClient.shared.updatePrompt(
             id: prompt.id,
             request: PromptUpdateRequest(name: draft.name, body: draft.body, isActive: draft.isActive),
@@ -260,7 +260,7 @@ struct PromptListView: View {
     @MainActor
     private func deletePrompt(_ prompt: Prompt) async {
         do {
-            let token = try await auth.fetchIDToken()
+            let token = try await auth.fetchToken()
             try await APIClient.shared.deletePrompt(id: prompt.id, token: token)
             prompts.removeAll { $0.id == prompt.id }
         } catch {

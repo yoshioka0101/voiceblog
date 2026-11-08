@@ -124,7 +124,7 @@ struct ArticleListView: View {
         defer { isLoading = false }
 
         do {
-            let token = try await auth.fetchIDToken()
+            let token = try await auth.fetchToken()
             articles = try await APIClient.shared.getListArticles(token: token)
         } catch {
             errorMessage = error.userFacingMessage(fallback: "記事の取得に失敗しました。しばらくしてからもう一度お試しください。")
@@ -133,7 +133,7 @@ struct ArticleListView: View {
 
     @MainActor
     private func createArticle(_ draft: ArticleDraft) async throws {
-        let token = try await auth.fetchIDToken()
+        let token = try await auth.fetchToken()
         let created = try await APIClient.shared.createArticle(
             request: ArticleCreateRequest(title: draft.title, content: draft.content),
             token: token

@@ -142,7 +142,7 @@ struct ArticleDetailView: View {
 
     @MainActor
     private func updateArticle(_ draft: ArticleDraft) async throws {
-        let token = try await auth.fetchIDToken()
+        let token = try await auth.fetchToken()
         article = try await APIClient.shared.updateArticle(
             id: article.id,
             request: ArticleUpdateRequest(title: draft.title, content: draft.content),
@@ -156,7 +156,7 @@ struct ArticleDetailView: View {
         defer { isDeleting = false }
 
         do {
-            let token = try await auth.fetchIDToken()
+            let token = try await auth.fetchToken()
             try await APIClient.shared.deleteArticle(id: article.id, token: token)
             dismiss()
         } catch {

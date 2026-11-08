@@ -6,6 +6,9 @@ struct HomeView: View {
     @State private var showingIntegrationSettings = false
     @State private var speechSessionID = UUID()
     @State private var navigationStackID = UUID()
+    @State private var showingDeleteConfirmation = false
+    @State private var deleteErrorMessage: String?
+    @State private var showingDeleteCompleted = false
 
     var body: some View {
         NavigationStack {
@@ -38,12 +41,46 @@ struct HomeView: View {
 
                         Divider()
 
-                        Button("ログアウト", role: .destructive) {
-                            auth.signOut()
+                        Button("データを削除", role: .destructive) {
+                            showingDeleteConfirmation = true
                         }
+                        .disabled(auth.isDeletingData)
                     } label: {
-                        Label("Profile", systemImage: "person.crop.circle")
+                        Label("設定", systemImage: "gearshape")
                     }
+                }
+            }
+            .confirmationDialog(
+                "すべてのデータを削除しますか？",
+                isPresented: $showingDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("削除する", role: .destructive) {
+                    Task { await deleteAllData() }
+                }
+                Button("キャンセル", role: .cancel) {}
+            } message: {
+                Text("記事・文字起こし・プロンプト・外部連携の設定がサーバーから削除されます。はてなブログや Qiita に投稿済みの記事は削除されません。この操作は取り消せません。")
+            }
+            .alert(
+                "削除できませんでした",
+                isPresented: Binding(
+                    get: { deleteErrorMessage != nil },
+                    set: { if !$0 { deleteErrorMessage = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(deleteErrorMessage ?? "")
+            }
+            .alert("データを削除しました", isPresented: $showingDeleteCompleted) {
+                Button("OK", role: .cancel) {}
+            }
+            .overlay {
+                if auth.isDeletingData {
+                    ProgressView("削除しています")
+                        .padding(24)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
                 }
             }
             .navigationDestination(isPresented: $showingPromptSettings) {
@@ -56,6 +93,17 @@ struct HomeView: View {
         .id(navigationStackID)
         .onReceive(NotificationCenter.default.publisher(for: .returnToHome)) { _ in
             resetNavigation()
+        }
+    }
+
+    @MainActor
+    private func deleteAllData() async {
+        do {
+            try await auth.deleteAllData()
+            resetNavigation()
+            showingDeleteCompleted = true
+        } catch {
+            deleteErrorMessage = error.userFacingMessage(fallback: "データの削除に失敗しました。しばらくしてからもう一度お試しください。")
         }
     }
 

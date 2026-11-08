@@ -12,3 +12,18 @@ get:
             $ref: ../components/schemas/user.yaml
     "401":
       description: Unauthorized
+delete:
+  summary: Delete current user and all related data
+  description: |
+    current user と、そのユーザーの記事・文字起こし・プロンプト・外部連携トークン・投稿履歴を物理削除する。
+    App Store のアカウント削除要件に対応する。
+  operationId: deleteMe
+  security:
+    - bearerAuth: []
+  responses:
+    "204":
+      description: Deleted
+    "401":
+      description: Unauthorized
+    "500":
+      description: Internal Server Error

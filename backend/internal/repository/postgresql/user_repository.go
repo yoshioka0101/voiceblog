@@ -57,3 +57,29 @@ func (r *UserRepository) FindOrCreate(ctx context.Context, provider, subject, em
 
 	return u, nil
 }
+
+// DeleteWithRelatedData はユーザーと、そのユーザーに紐づくデータをすべて物理削除する。
+// 外部キーの依存順に削除するため、呼び出し側でトランザクションを張ること。
+func (r *UserRepository) DeleteWithRelatedData(ctx context.Context, userID int64) error {
+	exec := dbctx.ExecutorFromContext(ctx, r.exec)
+
+	statements := []struct {
+		name  string
+		query string
+	}{
+		{"article_share_targets", `DELETE FROM article_share_targets WHERE article_id IN (SELECT id FROM articles WHERE user_id = $1)`},
+		{"articles", `DELETE FROM articles WHERE user_id = $1`},
+		{"transcriptions", `DELETE FROM transcriptions WHERE user_id = $1`},
+		{"prompts", `DELETE FROM prompts WHERE user_id = $1`},
+		{"external_tokens", `DELETE FROM external_tokens WHERE user_id = $1`},
+		{"users", `DELETE FROM users WHERE id = $1`},
+	}
+
+	for _, stmt := range statements {
+		if _, err := exec.ExecContext(ctx, stmt.query, userID); err != nil {
+			return fmt.Errorf("delete %s: %w", stmt.name, err)
+		}
+	}
+
+	return nil
+}

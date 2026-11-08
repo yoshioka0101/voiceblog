@@ -15,6 +15,7 @@ import (
 
 type UserRepository interface {
 	FindOrCreate(ctx context.Context, provider, subject, email, name string) (*user.User, error)
+	DeleteWithRelatedData(ctx context.Context, userID int64) error
 }
 
 type PromptRepository interface {

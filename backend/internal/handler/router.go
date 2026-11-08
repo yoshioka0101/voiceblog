@@ -17,7 +17,7 @@ import (
 func RegisterRoutes(r *gin.Engine, c *di.Container) {
 	health.RegisterRoutes(r)
 	auth := middleware.Auth(c.UseCases.Auth)
-	me.RegisterRoutes(r, auth)
+	me.RegisterRoutes(r, auth, c.UseCases.User)
 
 	authGroup := r.Group("/")
 	authGroup.Use(auth)

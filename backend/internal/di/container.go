@@ -73,7 +73,7 @@ func New(db *sql.DB, googleClientID, geminiAPIKey, geminiModel, tokenEncryptionK
 
 	useCases := &UseCases{
 		Auth:          authUseCase.NewUseCase(verifier, repos.User),
-		User:          userUseCase.NewUseCase(repos.User),
+		User:          userUseCase.NewUseCase(repos.User, txRunner),
 		Prompt:        promptUseCase.NewUseCase(repos.Prompt, txRunner),
 		Transcription: transcriptionUseCase.NewUseCase(repos.Transcription),
 		Article:       articleUseCase.NewUseCase(repos.Article, repos.Transcription, txRunner).WithGenerator(repos.Prompt, geminiClient),

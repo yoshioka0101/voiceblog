@@ -11,6 +11,8 @@ struct PromptRunComposerView: View {
     @State private var generatedArticle: GeneratedArticle?
     @State private var showGeneratedArticle = false
     @State private var errorMessage: String?
+    @State private var showingAIConsent = false
+    @AppStorage(AIConsent.storageKey) private var hasAcceptedAIConsent = false
 
     var body: some View {
         ScrollView {
@@ -48,8 +50,12 @@ struct PromptRunComposerView: View {
                     ProgressView()
                 } else {
                     Button("記事を生成") {
-                        Task {
-                            await generateArticle()
+                        if hasAcceptedAIConsent {
+                            Task {
+                                await generateArticle()
+                            }
+                        } else {
+                            showingAIConsent = true
                         }
                     }
                     .disabled(selectedPrompt == nil || isGenerating)
@@ -58,6 +64,20 @@ struct PromptRunComposerView: View {
         }
         .task {
             await loadPrompts()
+        }
+        .sheet(isPresented: $showingAIConsent) {
+            AIConsentSheet(
+                onAccept: {
+                    hasAcceptedAIConsent = true
+                    showingAIConsent = false
+                    Task {
+                        await generateArticle()
+                    }
+                },
+                onDecline: {
+                    showingAIConsent = false
+                }
+            )
         }
         .navigationDestination(isPresented: $showGeneratedArticle) {
             if let generatedArticle {
@@ -142,7 +162,8 @@ struct PromptRunComposerView: View {
 
     @MainActor
     private func generateArticle() async {
-        guard !isGenerating, let selectedPrompt else {
+        // 同意前は文字起こしを AI に送らない
+        guard hasAcceptedAIConsent, !isGenerating, let selectedPrompt else {
             return
         }
 

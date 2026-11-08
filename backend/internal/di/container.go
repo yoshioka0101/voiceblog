@@ -8,6 +8,7 @@ import (
 
 	dbtx "github.com/yoshioka0101/voiceblog/backend/internal/db"
 	"github.com/yoshioka0101/voiceblog/backend/internal/infra/crypto"
+	"github.com/yoshioka0101/voiceblog/backend/internal/infra/deviceauth"
 	"github.com/yoshioka0101/voiceblog/backend/internal/infra/gemini"
 	"github.com/yoshioka0101/voiceblog/backend/internal/infra/googleauth"
 	"github.com/yoshioka0101/voiceblog/backend/internal/infra/hatena"
@@ -48,7 +49,11 @@ type Container struct {
 
 func New(db *sql.DB, googleClientID, geminiAPIKey, geminiModel, tokenEncryptionKey string) (*Container, error) {
 	userRepo := postgresql.NewUserRepository(db)
-	verifier := googleauth.NewTokenVerifier(googleClientID)
+	// iOS アプリは vbd_ で始まるデバイストークン、それ以外は Google ID トークンとして検証する。
+	verifier := deviceauth.NewPrefixRouter(
+		deviceauth.NewVerifier(),
+		googleauth.NewTokenVerifier(googleClientID),
+	)
 	promptRepo := postgresql.NewPromptRepository(db)
 	transcriptionRepo := postgresql.NewTranscriptionRepository(db)
 	articleRepo := postgresql.NewArticleRepository(db)

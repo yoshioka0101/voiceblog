@@ -11,6 +11,7 @@ import (
 	"github.com/yoshioka0101/voiceblog/backend/internal/config"
 	"github.com/yoshioka0101/voiceblog/backend/internal/di"
 	"github.com/yoshioka0101/voiceblog/backend/internal/handler"
+	"github.com/yoshioka0101/voiceblog/backend/internal/handler/middleware"
 )
 
 type Server struct {
@@ -27,7 +28,12 @@ func New(db *sql.DB, cfg *config.Config, log *slog.Logger) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	handler.RegisterRoutes(router, container)
+	handler.RegisterRoutes(router, container, handler.Options{
+		GenerateLimit: middleware.DailyLimit{
+			PerUser: cfg.GenerateDailyLimitPerUser,
+			Global:  cfg.GenerateDailyLimitGlobal,
+		},
+	})
 
 	return &Server{engine: router}, nil
 }

@@ -15,6 +15,9 @@ type Config struct {
 	GeminiAPIKey       string
 	GeminiModel        string
 	TokenEncryptionKey string
+	// AI 記事生成の 1 日あたりの上限（UTC 日付で区切る）。0 は無制限。
+	GenerateDailyLimitPerUser int
+	GenerateDailyLimitGlobal  int
 }
 
 func Load() (Config, error) {
@@ -38,6 +41,15 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("GOOGLE_CLIENT_ID is required")
 	}
 
+	generatePerUser, err := getEnvInt("GENERATE_DAILY_LIMIT_PER_USER", 20)
+	if err != nil {
+		return Config{}, err
+	}
+	generateGlobal, err := getEnvInt("GENERATE_DAILY_LIMIT_GLOBAL", 300)
+	if err != nil {
+		return Config{}, err
+	}
+
 	return Config{
 		Port:               port,
 		LogLevel:           logLevel,
@@ -46,6 +58,9 @@ func Load() (Config, error) {
 		GeminiAPIKey:       getEnv("GEMINI_API_KEY", ""),
 		GeminiModel:        getEnv("GEMINI_MODEL", ""),
 		TokenEncryptionKey: getEnv("TOKEN_ENCRYPTION_KEY", ""),
+
+		GenerateDailyLimitPerUser: generatePerUser,
+		GenerateDailyLimitGlobal:  generateGlobal,
 	}, nil
 }
 
@@ -54,6 +69,18 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func getEnvInt(key string, fallback int) (int, error) {
+	v := os.Getenv(key)
+	if v == "" {
+		return fallback, nil
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || n < 0 {
+		return 0, fmt.Errorf("invalid %s: must be a non-negative integer", key)
+	}
+	return n, nil
 }
 
 func parseLogLevel(value string) (slog.Level, error) {

@@ -13,11 +13,12 @@ import (
 	"github.com/yoshioka0101/voiceblog/backend/internal/usecase/article"
 )
 
-func RegisterProtectedRoutes(r gin.IRoutes, useCase *usecase.UseCase) {
+// generateMiddlewares は AI 記事生成（POST /articles/generate）にだけ適用するミドルウェア（レート制限など）。
+func RegisterProtectedRoutes(r gin.IRoutes, useCase *usecase.UseCase, generateMiddlewares ...gin.HandlerFunc) {
 	handler := &Handler{useCase: useCase}
 	r.GET("/articles", handler.GetListArticles)
 	r.POST("/articles", handler.CreateArticle)
-	r.POST("/articles/generate", handler.GenerateArticle)
+	r.POST("/articles/generate", append(generateMiddlewares, handler.GenerateArticle)...)
 	r.GET("/articles/:id", handler.GetArticle)
 	r.PATCH("/articles/:id", handler.UpdateArticle)
 	r.DELETE("/articles/:id", handler.DeleteArticle)

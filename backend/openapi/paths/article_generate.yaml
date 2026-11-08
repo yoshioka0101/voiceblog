@@ -20,3 +20,7 @@ post:
       description: Bad Request
     "401":
       description: Unauthorized
+    "429":
+      description: |
+        1 日あたりの生成上限に達した（ユーザー単位 GENERATE_DAILY_LIMIT_PER_USER、全体 GENERATE_DAILY_LIMIT_GLOBAL。UTC の日付で区切る）。
+        レスポンスの code は rate_limited。

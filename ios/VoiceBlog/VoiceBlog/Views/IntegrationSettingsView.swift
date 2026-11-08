@@ -301,7 +301,7 @@ struct IntegrationSettingsView: View {
         defer { isLoading = false }
 
         do {
-            let token = try await auth.fetchIDToken()
+            let token = try await auth.fetchToken()
             integrations = try await APIClient.shared.getIntegrations(token: token)
         } catch let error as APIError where error == .notFound {
             featureUnavailable = true
@@ -316,7 +316,7 @@ struct IntegrationSettingsView: View {
         defer { isSaving = false }
 
         do {
-            let token = try await auth.fetchIDToken()
+            let token = try await auth.fetchToken()
             try await APIClient.shared.storeToken(
                 provider: provider,
                 request: StoreTokenRequest(token: tokenInput),
@@ -338,7 +338,7 @@ struct IntegrationSettingsView: View {
     @MainActor
     private func removeToken(provider: String) async {
         do {
-            let token = try await auth.fetchIDToken()
+            let token = try await auth.fetchToken()
             try await APIClient.shared.deleteToken(provider: provider, token: token)
             await loadIntegrations()
         } catch {

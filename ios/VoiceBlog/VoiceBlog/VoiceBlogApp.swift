@@ -1,5 +1,4 @@
 import SwiftUI
-import GoogleSignIn
 
 @main
 struct VoiceBlogApp: App {
@@ -8,9 +7,6 @@ struct VoiceBlogApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView(auth: auth)
-                .onOpenURL { url in
-                    GIDSignIn.sharedInstance.handle(url)
-                }
         }
     }
 }

@@ -217,7 +217,7 @@ struct ArticleShareView: View {
         defer { isLoading = false }
 
         do {
-            let token = try await auth.fetchIDToken()
+            let token = try await auth.fetchToken()
             // share-targets は常に取得可能（404 ではない）
             // integrations は TOKEN_ENCRYPTION_KEY 未設定だと 404
             do {
@@ -244,7 +244,7 @@ struct ArticleShareView: View {
         }
 
         do {
-            let token = try await auth.fetchIDToken()
+            let token = try await auth.fetchToken()
             let target = try await APIClient.shared.publishArticle(
                 id: article.id,
                 request: PublishRequest(provider: provider),

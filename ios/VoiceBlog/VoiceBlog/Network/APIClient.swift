@@ -11,7 +11,7 @@ enum APIError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unauthorized:
-            return "認証に失敗しました。再度ログインしてください。"
+            return "端末の認証に失敗しました。アプリを再起動してもう一度お試しください。"
         case .invalidConfiguration:
             return "アプリの設定に問題があります。管理者にお問い合わせください。"
         case .notFound:
@@ -19,6 +19,9 @@ enum APIError: LocalizedError {
         case .serverError(let statusCode, _, _):
             if statusCode == 400 {
                 return "入力内容に問題があります。内容を確認してください。"
+            }
+            if statusCode == 429 {
+                return "本日の AI 生成の上限に達しました。明日もう一度お試しください。"
             }
             return "サーバーで問題が発生しました。しばらくしてからもう一度お試しください。"
         case .networkError:
@@ -34,6 +37,8 @@ extension Error {
             return apiError.errorDescription ?? fallback
         case let authError as AuthManagerError:
             return authError.errorDescription ?? fallback
+        case let credentialError as DeviceCredentialError:
+            return credentialError.errorDescription ?? fallback
         case let speechError as SpeechCaptureError:
             return speechError.errorDescription ?? fallback
         case is AppConfigurationError:
@@ -192,6 +197,10 @@ actor APIClient {
 
     func getMe(token: String) async throws -> User {
         try await request(path: "/me", token: token)
+    }
+
+    func deleteMe(token: String) async throws {
+        let _: EmptyResponse = try await request(path: "/me", method: "DELETE", token: token)
     }
 
     func getListPrompts(token: String) async throws -> [Prompt] {

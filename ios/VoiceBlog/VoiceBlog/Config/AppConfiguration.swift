@@ -18,14 +18,6 @@ enum AppConfigurationError: LocalizedError {
 }
 
 extension Bundle {
-    nonisolated func googleClientID() throws -> String {
-        try requiredConfigurationValue(for: "GIDClientID")
-    }
-
-    nonisolated func googleServerClientID() throws -> String {
-        try requiredConfigurationValue(for: "GIDServerClientID")
-    }
-
     nonisolated func apiBaseURL() throws -> URL {
         let value = try requiredConfigurationValue(for: "APIBaseURL")
 

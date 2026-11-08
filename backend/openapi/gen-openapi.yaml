@@ -517,4 +517,8 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: JWT
+      description: |
+        次のどちらかを Bearer トークンとして送る。
+        - iOS アプリのデバイストークン: `vbd_` + base64url（パディングなし）でエンコードした 32 byte の乱数。
+          サーバーは SHA-256 ハッシュを auth_subject として匿名ユーザー（auth_provider = device）を作成・特定する。
+        - Google ID トークン（JWT）
